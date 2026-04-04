@@ -84,7 +84,19 @@ build_pdf() {
     # 用 weasyprint 作为备选（Markdown→HTML→PDF）
     info "使用 weasyprint 生成 PDF..."
     local html_single="$OUTPUT_DIR/book_single.html"
-    pandoc "$merged" \
+
+    # 先生成不带封面的合并文件（跳过 cover.md）
+    local merged_no_cover="$OUTPUT_DIR/book_no_cover.md"
+    > "$merged_no_cover"
+    for ch in "${CHAPTERS[@]}"; do
+      [[ "$ch" == "cover.md" ]] && continue
+      if [[ -f "$ch" ]]; then
+        cat "$ch" >> "$merged_no_cover"
+        echo -e "\n\n---\n\n" >> "$merged_no_cover"
+      fi
+    done
+
+    pandoc "$merged_no_cover" \
       --from markdown \
       --to html5 \
       --standalone \
@@ -94,6 +106,20 @@ build_pdf() {
       --highlight-style=tango \
       -V lang=zh-CN \
       -o "$html_single"
+
+    # 在 <body> 后插入封面图作为第一页
+    python3 -c "
+import sys
+html = open(sys.argv[1], encoding='utf-8').read()
+cover = '''<div style=\"text-align:center;page-break-after:always;padding-top:100px;\">
+<img src=\"cover.jpg\" style=\"max-width:500px;\" />
+<h1 style=\"margin-top:1em;\">$BOOK_TITLE</h1>
+<p style=\"color:#666;\">everettjf | Claude Code</p>
+</div>'''
+html = html.replace('<body>', '<body>' + cover, 1)
+open(sys.argv[1], 'w', encoding='utf-8').write(html)
+" "$html_single"
+
     weasyprint "$html_single" "$pdf"
     info "PDF 已生成 → $pdf"
     return 0

@@ -295,6 +295,7 @@ img{{max-width:100%;border-radius:var(--radius)}}
 .dl-pdf:hover{{background:#00bfe0;border-color:#00bfe0;color:#000}}
 .dl-epub{{background:transparent;color:var(--fg);border-color:var(--border)}}
 .dl-epub:hover{{border-color:var(--accent);color:var(--accent)}}
+.version-info{{font-size:.8rem;color:var(--fg-dim)}}
 
 /* ── 翻页导航 ── */
 .page-nav{{
@@ -358,7 +359,7 @@ img{{max-width:100%;border-radius:var(--radius)}}
 <div class="layout">
   <nav class="sidebar">
     <div class="sidebar-header">
-      <h1><a href="cover.html" style="color:inherit;text-decoration:none">解密 Claude Code</a></h1>
+      <h1><a href="/" style="color:inherit;text-decoration:none">解密 Claude Code</a></h1>
       <p>AI 编程助手的源码之旅</p>
     </div>
     <div class="sidebar-search">
@@ -557,12 +558,9 @@ def main():
         )
         p = os.path.join(out, f"{cid}.html")
         open(p, "w", encoding="utf-8").write(html)
-
-    # 3) index.html → 跳转到封面
-    first = loaded[0][0] if loaded else "cover"
-    open(os.path.join(out, "index.html"), "w", encoding="utf-8").write(
-        f'<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url={first}.html"></head></html>\n'
-    )
+        # 封面页同时生成为 index.html
+        if cid == "cover":
+            open(os.path.join(out, "index.html"), "w", encoding="utf-8").write(html)
 
     # 4) 复制封面图
     c = os.path.join(src, "cover.jpg")

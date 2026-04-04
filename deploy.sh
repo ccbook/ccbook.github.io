@@ -47,10 +47,14 @@ bump_version() {
 }
 
 VERSION=$(get_version)
-NEW_VERSION=$(bump_version "$VERSION")
-TAG="v${NEW_VERSION}"
+TAG="v${VERSION}"
 
-info "当前版本: v${VERSION} → 新版本: ${TAG}"
+info "发布版本: ${TAG}"
+
+# ── 注入版本号到 cover.md ────────────────────────────────────
+# 临时替换版本占位符，构建完再还原
+sed -i '' "s|{{VERSION}}|${TAG}|g" cover.md
+trap 'sed -i "" "s|${TAG}|{{VERSION}}|g" cover.md' EXIT
 
 # ── 构建 ──────────────────────────────────────────────────────
 info "构建 HTML..."
@@ -62,20 +66,19 @@ info "构建 PDF..."
 info "构建 EPUB..."
 ./build.sh epub
 
-PDF_FILE="${OUTPUT_DIR}/解密ClaudeCode.pdf"
-EPUB_FILE="${OUTPUT_DIR}/解密ClaudeCode.epub"
+PDF_ORIG="${OUTPUT_DIR}/解密ClaudeCode.pdf"
+EPUB_ORIG="${OUTPUT_DIR}/解密ClaudeCode.epub"
 
-[[ -f "$PDF_FILE" ]]  || error "PDF 未生成: $PDF_FILE"
-[[ -f "$EPUB_FILE" ]] || error "EPUB 未生成: $EPUB_FILE"
+[[ -f "$PDF_ORIG" ]]  || error "PDF 未生成: $PDF_ORIG"
+[[ -f "$EPUB_ORIG" ]] || error "EPUB 未生成: $EPUB_ORIG"
+
+# 重命名加上版本号
+PDF_FILE="${OUTPUT_DIR}/Demystifying-Claude-Code-${TAG}.pdf"
+EPUB_FILE="${OUTPUT_DIR}/Demystifying-Claude-Code-${TAG}.epub"
+cp "$PDF_ORIG" "$PDF_FILE"
+cp "$EPUB_ORIG" "$EPUB_FILE"
 
 info "构建完成！PDF=$(du -h "$PDF_FILE" | cut -f1), EPUB=$(du -h "$EPUB_FILE" | cut -f1)"
-
-# ── 更新落地页中的下载链接 ────────────────────────────────────
-RELEASE_URL="https://github.com/${REPO}/releases/download/${TAG}"
-for f in "${OUTPUT_DIR}"/*.html; do
-  sed -i '' "s|{{pdf_url}}|${RELEASE_URL}/解密ClaudeCode.pdf|g" "$f"
-  sed -i '' "s|{{epub_url}}|${RELEASE_URL}/解密ClaudeCode.epub|g" "$f"
-done
 
 # ── 部署到 GitHub Pages (gh-pages 分支) ──────────────────────
 info "部署到 GitHub Pages..."
@@ -99,8 +102,9 @@ info "GitHub Pages 已部署！"
 # ── 创建 GitHub Release ──────────────────────────────────────
 info "创建 Release ${TAG}..."
 
-# 保存版本号
-echo "$NEW_VERSION" > "$VERSION_FILE"
+# 保存下一个版本号
+NEXT_VERSION=$(bump_version "$VERSION")
+echo "$NEXT_VERSION" > "$VERSION_FILE"
 
 RELEASE_NOTES="## 解密 Claude Code ${TAG}
 
@@ -122,6 +126,14 @@ gh release create "$TAG" \
   --notes "$RELEASE_NOTES"
 
 info "Release 已创建！"
+
+# ── 提交源码到 main 分支 ─────────────────────────────────────
+info "提交源码..."
+git add -A
+git diff --cached --quiet || git commit -m "Release ${TAG}"
+git push origin main
+
+info "源码已推送！"
 
 # ── 完成 ──────────────────────────────────────────────────────
 echo ""
