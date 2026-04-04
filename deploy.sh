@@ -43,6 +43,10 @@ bump_version() {
   major="${v%%.*}"
   minor="${v#*.}"
   minor=$((minor + 1))
+  # 跳过含数字 4 的版本号
+  while [[ "${major}.${minor}" == *4* ]]; do
+    minor=$((minor + 1))
+  done
   echo "${major}.${minor}"
 }
 
@@ -52,9 +56,8 @@ TAG="v${VERSION}"
 info "发布版本: ${TAG}"
 
 # ── 注入版本号到 cover.md ────────────────────────────────────
-# 临时替换版本占位符，构建完再还原
+# 临时替换版本占位符，构建完立即还原
 sed -i '' "s|{{VERSION}}|${TAG}|g" cover.md
-trap 'sed -i "" "s|${TAG}|{{VERSION}}|g" cover.md' EXIT
 
 # ── 构建 ──────────────────────────────────────────────────────
 info "构建 HTML..."
@@ -65,6 +68,9 @@ info "构建 PDF..."
 
 info "构建 EPUB..."
 ./build.sh epub
+
+# 构建完成，立即还原 cover.md
+sed -i '' "s|${TAG}|{{VERSION}}|g" cover.md
 
 PDF_ORIG="${OUTPUT_DIR}/解密ClaudeCode.pdf"
 EPUB_ORIG="${OUTPUT_DIR}/解密ClaudeCode.epub"
