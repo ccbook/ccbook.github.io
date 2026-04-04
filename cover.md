@@ -23,6 +23,7 @@
 <br/>
 
 <div class="download-buttons">
+<a class="dl-btn dl-start" href="preface.html">开始阅读</a>
 <a class="dl-btn dl-pdf" href="https://github.com/ccbook/ccbook.github.io/releases/latest">下载 PDF</a>
 <a class="dl-btn dl-epub" href="https://github.com/ccbook/ccbook.github.io/releases/latest">下载 EPUB</a>
 <a class="dl-btn dl-epub" href="https://github.com/ccbook/ccbook.github.io">源码</a>
@@ -31,7 +32,7 @@
 <br/>
 
 <div class="version-info">
-当前版本：{{VERSION}}
+当前版本：v1.1
 </div>
 
 </div>

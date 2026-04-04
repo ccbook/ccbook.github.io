@@ -291,8 +291,10 @@ img{{max-width:100%;border-radius:var(--radius)}}
   border:2px solid var(--border);
 }}
 .dl-btn:hover{{text-decoration:none}}
-.dl-pdf{{background:var(--accent);color:#000;border-color:var(--accent)}}
-.dl-pdf:hover{{background:#00bfe0;border-color:#00bfe0;color:#000}}
+.dl-start{{background:var(--accent);color:#000;border-color:var(--accent)}}
+.dl-start:hover{{background:#00bfe0;border-color:#00bfe0;color:#000}}
+.dl-pdf{{background:transparent;color:var(--fg);border-color:var(--accent)}}
+.dl-pdf:hover{{background:var(--accent);border-color:var(--accent);color:#000}}
 .dl-epub{{background:transparent;color:var(--fg);border-color:var(--border)}}
 .dl-epub:hover{{border-color:var(--accent);color:var(--accent)}}
 .version-info{{font-size:.8rem;color:var(--fg-dim)}}
