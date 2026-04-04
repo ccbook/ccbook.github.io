@@ -106,11 +106,14 @@ info "创建 Release ${TAG}..."
 NEXT_VERSION=$(bump_version "$VERSION")
 echo "$NEXT_VERSION" > "$VERSION_FILE"
 
+PDF_BASENAME=$(basename "$PDF_FILE")
+EPUB_BASENAME=$(basename "$EPUB_FILE")
+
 RELEASE_NOTES="## 解密 Claude Code ${TAG}
 
 ### 下载
-- **PDF**: 解密ClaudeCode.pdf
-- **EPUB**: 解密ClaudeCode.epub
+- **PDF**: ${PDF_BASENAME}
+- **EPUB**: ${EPUB_BASENAME}
 
 ### 在线阅读
 https://${REPO%%/*}.github.io
