@@ -257,3 +257,7 @@ if (feature('LSP_INTEGRATION')) tools.push(LSPTool)
 设计模式就像乐高积木——每块积木很简单，但组合起来可以搭建出复杂精美的作品。
 
 下一章，我们将从源码中提炼工程实践的启示。
+
+---
+
+*本书由 everettjf 使用 Claude Code 分析泄露源码编写 | 保留出处即可自由转载*

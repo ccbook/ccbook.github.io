@@ -353,3 +353,7 @@ nonStreaming().then(() => {
 运行 `node experiment.js`，你会明显感受到两种方式的体验差异。
 
 下一章，我们将学习上下文管理——AI 如何在有限的"记忆"中做到最好。
+
+---
+
+*本书由 everettjf 使用 Claude Code 分析泄露源码编写 | 保留出处即可自由转载*

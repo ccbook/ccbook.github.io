@@ -125,3 +125,7 @@
 **Zod**：一个 TypeScript 运行时类型验证库。用于在程序运行时检查数据格式是否正确。参见第 3 章。
 
 **Zustand**：一个轻量级的 React 状态管理库。Claude Code 用它管理全局状态。参见第 6 章。
+
+---
+
+*本书由 everettjf 使用 Claude Code 分析泄露源码编写 | 保留出处即可自由转载*

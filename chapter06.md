@@ -343,3 +343,7 @@ const useSettings = create(
 Claude Code 的 Zustand 仓库就像一个"微信群"——所有组件都在这个"群"里。当状态发生变化（有人"发了消息"），所有订阅了这个变化的组件都会收到通知（看到新消息）。
 
 下一章，我们将学习 Claude Code 的命令系统——那些以 `/` 开头的神奇命令。
+
+---
+
+*本书由 everettjf 使用 Claude Code 分析泄露源码编写 | 保留出处即可自由转载*

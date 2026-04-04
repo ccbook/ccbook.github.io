@@ -1,5 +1,11 @@
 # 关于本书
 
+## 作者
+
+本书由 **everettjf** 使用 Claude Code 分析泄露源码编写而成。
+
+保留出处即可自由转载。
+
 ## 写作背景
 
 本书基于对 Claude Code 源码的深度分析撰写。Claude Code 是 Anthropic 公司开发的 AI 编程助手，其源码通过 npm source maps 被公开。

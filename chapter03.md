@@ -452,3 +452,7 @@ useEffect(() => {}, [])      副作用 Hook
 ```
 
 有了这些基础知识，你就准备好深入 Claude Code 的源码了。下一章，我们将打开程序的大门——`main.tsx`。
+
+---
+
+*本书由 everettjf 使用 Claude Code 分析泄露源码编写 | 保留出处即可自由转载*

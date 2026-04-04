@@ -1,7 +1,7 @@
 <div align="center">
 
 <!-- 等待替换为实际封面图 -->
-<!-- <img src="cover.png" width="400" /> -->
+<!-- <img src="cover.jpg" width="400" /> -->
 
 # 解密 Claude Code
 
@@ -170,7 +170,7 @@ make epub
 ├── Makefile            ← 构建入口
 ├── build.sh            ← 构建脚本
 ├── cover.md            ← 封面页
-├── cover.png           ← 封面图片（待添加）
+├── cover.jpg           ← 封面图片
 ├── preface.md          ← 前言
 ├── chapter01.md        ← 第 1 章
 ├── ...

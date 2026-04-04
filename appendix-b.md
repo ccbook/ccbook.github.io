@@ -113,3 +113,7 @@
 | `src/hooks/useArrowKeyHistory.ts` | - | 历史记录导航 | 第 5 章 |
 | `src/hooks/useGlobalKeybindings.ts` | - | 全局快捷键 | 第 5 章 |
 | `src/hooks/useSettingsChange.ts` | - | 配置文件监听 | 第 27 章 |
+
+---
+
+*本书由 everettjf 使用 Claude Code 分析泄露源码编写 | 保留出处即可自由转载*

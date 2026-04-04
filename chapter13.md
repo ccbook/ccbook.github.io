@@ -320,3 +320,7 @@ function isReadOnlyCommand(command: string): boolean {
 安全不是一个可以"完全解决"的问题——它是一场永无止境的猫鼠游戏。但每多一层检测，就多一分安全。
 
 下一章，我们将看看文件操作的三个工具：Read、Write 和 Edit。
+
+---
+
+*本书由 everettjf 使用 Claude Code 分析泄露源码编写 | 保留出处即可自由转载*

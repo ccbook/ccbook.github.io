@@ -260,3 +260,7 @@ AI 请求：Bash("npm test")
 Claude Code 的安全设计体现了所有这些原则。如果你想深入学习安全，这是一个很好的起点。
 
 下一章，我们将进入扩展与集成篇，看看 MCP 协议如何让 Claude Code 拥有无限的能力。
+
+---
+
+*本书由 everettjf 使用 Claude Code 分析泄露源码编写 | 保留出处即可自由转载*

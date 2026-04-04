@@ -258,3 +258,7 @@ profileCheckpoint('render_complete')      // 记录：渲染完成
 如果你将来要写自己的程序，也可以参考这个模式来组织启动逻辑。
 
 下一章，我们将深入了解终端里的 React——Ink 框架。
+
+---
+
+*本书由 everettjf 使用 Claude Code 分析泄露源码编写 | 保留出处即可自由转载*

@@ -81,10 +81,20 @@ build_pdf() {
   elif command -v lualatex &>/dev/null; then
     pdf_engine="--pdf-engine=lualatex"
   elif command -v weasyprint &>/dev/null; then
-    # 用 weasyprint 作为备选（HTML→PDF）
+    # 用 weasyprint 作为备选（Markdown→HTML→PDF）
     info "使用 weasyprint 生成 PDF..."
-    build_html
-    weasyprint "$OUTPUT_DIR/index.html" "$pdf"
+    local html_single="$OUTPUT_DIR/book_single.html"
+    pandoc "$merged" \
+      --from markdown \
+      --to html5 \
+      --standalone \
+      --toc \
+      --toc-depth=2 \
+      --metadata title="$BOOK_TITLE" \
+      --highlight-style=tango \
+      -V lang=zh-CN \
+      -o "$html_single"
+    weasyprint "$html_single" "$pdf"
     info "PDF 已生成 → $pdf"
     return 0
   else
@@ -110,8 +120,18 @@ build_pdf() {
     -o "$pdf" 2>/dev/null || {
       warn "LaTeX PDF 生成失败，尝试 HTML→PDF 备选方案..."
       if command -v weasyprint &>/dev/null; then
-        build_html
-        weasyprint "$OUTPUT_DIR/index.html" "$pdf"
+        local html_single="$OUTPUT_DIR/book_single.html"
+        pandoc "$merged" \
+          --from markdown \
+          --to html5 \
+          --standalone \
+          --toc \
+          --toc-depth=2 \
+          --metadata title="$BOOK_TITLE" \
+          --highlight-style=tango \
+          -V lang=zh-CN \
+          -o "$html_single"
+        weasyprint "$html_single" "$pdf"
       else
         error "PDF 生成失败。请安装以下任一工具："
         error "  brew install --cask mactex-no-gui  # LaTeX (推荐)"
@@ -132,8 +152,8 @@ build_epub() {
   merge_chapters "$merged"
 
   local cover_opt=""
-  if [[ -f "cover.png" ]]; then
-    cover_opt="--epub-cover-image=cover.png"
+  if [[ -f "cover.jpg" ]]; then
+    cover_opt="--epub-cover-image=cover.jpg"
   fi
 
   pandoc "$merged" \

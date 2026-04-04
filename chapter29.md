@@ -209,3 +209,7 @@ return execute(command)
 **工具会过时，原则不会。**
 
 下一章——最后一章——我们将展望你的编程之路。
+
+---
+
+*本书由 everettjf 使用 Claude Code 分析泄露源码编写 | 保留出处即可自由转载*

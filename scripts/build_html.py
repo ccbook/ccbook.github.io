@@ -119,6 +119,9 @@ def md_to_html(text, sid):
             if not in_list or list_tag != "ol": _close_list(); out.append("<ol>"); in_list = True; list_tag = "ol"
             out.append(f"<li>{inline(re.sub(r'^\\d+\\.\\s+', '', s))}</li>"); continue
         if s == "": _close_list(); out.append(""); continue
+        # HTML 标签直通（如 <div>, <img>, <br/>, </div> 等）
+        if re.match(r"^</?[a-zA-Z][\s\S]*>$", s):
+            _close_list(); out.append(s); continue
         _close_list(); out.append(f"<p>{inline(s)}</p>")
     _close_list(); _close_table()
     if in_code: out.append("</code></pre>")
@@ -152,6 +155,13 @@ PAGE = """\
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{page_title} - 解密 Claude Code</title>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4EGRH2BGC6"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){{dataLayer.push(arguments);}}
+  gtag('js', new Date());
+  gtag('config', 'G-4EGRH2BGC6');
+</script>
 <style>
 :root {{
   --sidebar-w:300px; --bg:#101418; --bg-side:#141a1e; --fg:#d4dde0;
@@ -272,6 +282,19 @@ ul,ol{{padding-left:1.5rem;margin:.5rem 0}}
 li{{margin:.25rem 0}}
 hr{{border:none;border-top:1px solid var(--border);margin:2.5rem 0}}
 img{{max-width:100%;border-radius:var(--radius)}}
+
+/* ── 下载按钮 ── */
+.download-buttons{{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin:1rem 0}}
+.dl-btn{{
+  display:inline-block;padding:.65rem 1.8rem;border-radius:var(--radius);
+  font-size:.95rem;font-weight:600;text-decoration:none;transition:all .2s;
+  border:2px solid var(--border);
+}}
+.dl-btn:hover{{text-decoration:none}}
+.dl-pdf{{background:var(--accent);color:#000;border-color:var(--accent)}}
+.dl-pdf:hover{{background:#00bfe0;border-color:#00bfe0;color:#000}}
+.dl-epub{{background:transparent;color:var(--fg);border-color:var(--border)}}
+.dl-epub:hover{{border-color:var(--accent);color:var(--accent)}}
 
 /* ── 翻页导航 ── */
 .page-nav{{
@@ -542,8 +565,8 @@ def main():
     )
 
     # 4) 复制封面图
-    c = os.path.join(src, "cover.png")
-    if os.path.isfile(c): shutil.copy2(c, os.path.join(out, "cover.png"))
+    c = os.path.join(src, "cover.jpg")
+    if os.path.isfile(c): shutil.copy2(c, os.path.join(out, "cover.jpg"))
 
     print(f"\n  => {len(loaded)} 个页面已生成到 {out}/")
 

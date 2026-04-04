@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>解密 Claude Code — 一个 AI 编程助手的源码之旅</title>
+<meta name="description" content="深度解析 Claude Code 50 万行源码背后的架构与设计思路，面向会初级编程的高中生。">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4EGRH2BGC6"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-4EGRH2BGC6');
+</script>
+<style>
+:root {
+  --bg: #0c1015; --fg: #d4dde0; --fg-dim: #8899a6;
+  --accent: #00d4ff; --accent2: #20b2aa;
+  --code-bg: #181e24; --border: #283038; --radius: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Noto Sans SC", "PingFang SC", sans-serif;
+  background: var(--bg); color: var(--fg); line-height: 1.8;
+}
+
+/* Hero */
+.hero {
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  padding: 2rem;
+  background: radial-gradient(ellipse at 50% 30%, rgba(0,212,255,.08) 0%, transparent 60%);
+}
+.hero img {
+  width: 280px; border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.5), 0 0 40px rgba(0,212,255,.15);
+  transition: transform .3s;
+}
+.hero img:hover { transform: translateY(-4px); }
+.hero h1 {
+  font-size: 2.8rem; color: var(--accent); margin: 1.5rem 0 .5rem;
+  letter-spacing: 2px;
+}
+.hero .subtitle {
+  font-size: 1.2rem; color: var(--fg-dim); margin-bottom: .8rem;
+}
+.hero .author {
+  font-size: .95rem; color: var(--accent2); margin-bottom: 1.5rem;
+}
+.hero .stats {
+  font-size: .9rem; color: var(--fg-dim); margin-bottom: 2rem;
+}
+
+/* Buttons */
+.buttons { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+.btn {
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: .75rem 1.8rem; border-radius: var(--radius);
+  font-size: 1rem; font-weight: 600; text-decoration: none;
+  transition: all .2s; cursor: pointer; border: 2px solid transparent;
+}
+.btn-primary {
+  background: var(--accent); color: #000; border-color: var(--accent);
+}
+.btn-primary:hover { background: #00bfe0; border-color: #00bfe0; }
+.btn-outline {
+  background: transparent; color: var(--fg); border-color: var(--border);
+}
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+.btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+/* Features */
+.features {
+  max-width: 900px; margin: 0 auto; padding: 4rem 2rem;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;
+}
+.feature {
+  background: var(--code-bg); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1.5rem;
+}
+.feature .icon { font-size: 1.6rem; margin-bottom: .5rem; }
+.feature h3 { font-size: 1.05rem; color: var(--accent); margin-bottom: .4rem; }
+.feature p { font-size: .9rem; color: var(--fg-dim); }
+
+/* TOC Preview */
+.toc-preview {
+  max-width: 700px; margin: 0 auto; padding: 2rem 2rem 4rem; text-align: center;
+}
+.toc-preview h2 {
+  font-size: 1.5rem; color: var(--accent); margin-bottom: 1.5rem;
+}
+.toc-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: .8rem; text-align: left;
+}
+.toc-grid .part {
+  background: var(--code-bg); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1rem;
+}
+.toc-grid .part h4 {
+  font-size: .8rem; color: var(--accent2); margin-bottom: .4rem;
+  text-transform: uppercase; letter-spacing: .5px;
+}
+.toc-grid .part p { font-size: .85rem; color: var(--fg-dim); }
+
+/* Footer */
+.footer {
+  text-align: center; padding: 2rem; border-top: 1px solid var(--border);
+  font-size: .8rem; color: var(--fg-dim);
+}
+.footer a { color: var(--accent); text-decoration: none; }
+
+@media (max-width: 600px) {
+  .hero h1 { font-size: 2rem; }
+  .hero img { width: 200px; }
+  .buttons { flex-direction: column; align-items: center; }
+}
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <img src="cover.jpg" alt="解密 Claude Code 封面" />
+  <h1>解密 Claude Code</h1>
+  <p class="subtitle">一个 AI 编程助手的源码之旅</p>
+  <p class="author">everettjf 著 &middot; 使用 Claude Code 分析泄露源码</p>
+  <p class="stats">30 章正文 &middot; 3 个附录 &middot; 150+ 代码示例 &middot; 40+ 架构图</p>
+  <div class="buttons">
+    <a class="btn btn-primary" href="cover.html">
+      <svg viewBox="0 0 24 24"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM8 18H4V6h4v12zm6 0h-4V6h4v12zm6 0h-4V6h4v12z"/></svg>
+      在线阅读
+    </a>
+    <a class="btn btn-outline" href="{{pdf_url}}" id="btn-pdf">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 2l5 5h-5V4zM6 20V4h5v7h7v9H6z"/></svg>
+      下载 PDF
+    </a>
+    <a class="btn btn-outline" href="{{epub_url}}" id="btn-epub">
+      <svg viewBox="0 0 24 24"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm0 18H6V4h2v8l2.5-1.5L13 12V4h5v16z"/></svg>
+      下载 EPUB
+    </a>
+  </div>
+</section>
+
+<section class="features">
+  <div class="feature">
+    <div class="icon">🤖</div>
+    <h3>AI Agent 核心循环</h3>
+    <p>思考-行动-观察，理解 AI 编程助手的工作原理</p>
+  </div>
+  <div class="feature">
+    <div class="icon">🔧</div>
+    <h3>40+ 工具系统</h3>
+    <p>统一接口、调度机制、故障安全的完整设计</p>
+  </div>
+  <div class="feature">
+    <div class="icon">🛡️</div>
+    <h3>六层安全防御</h3>
+    <p>权限系统、危险检测、沙箱隔离的纵深防御</p>
+  </div>
+  <div class="feature">
+    <div class="icon">🏗️</div>
+    <h3>十大设计模式</h3>
+    <p>从 50 万行源码中提炼的可迁移架构智慧</p>
+  </div>
+  <div class="feature">
+    <div class="icon">📦</div>
+    <h3>50 万行 TypeScript</h3>
+    <p>1,884 个文件、146 个组件、87 个 Hooks</p>
+  </div>
+  <div class="feature">
+    <div class="icon">🎓</div>
+    <h3>面向初学者</h3>
+    <p>知道变量、函数、循环就够了，不需要 TypeScript 基础</p>
+  </div>
+</section>
+
+<section class="toc-preview">
+  <h2>目录概览</h2>
+  <div class="toc-grid">
+    <div class="part"><h4>起步篇</h4><p>第 1-3 章：全书导览、源码地图、TS/React 入门</p></div>
+    <div class="part"><h4>核心架构篇</h4><p>第 4-7 章：入口文件、Ink 框架、状态管理、命令系统</p></div>
+    <div class="part"><h4>对话引擎篇</h4><p>第 8-11 章：消息系统、Agent Loop、流式响应、上下文</p></div>
+    <div class="part"><h4>工具系统篇</h4><p>第 12-16 章：Bash、文件读写、搜索、子智能体</p></div>
+    <div class="part"><h4>安全与权限篇</h4><p>第 17-19 章：权限层级、危险检测、沙箱隔离</p></div>
+    <div class="part"><h4>扩展与集成篇</h4><p>第 20-23 章：MCP 协议、Hook、IDE 桥接、插件</p></div>
+    <div class="part"><h4>高级话题篇</h4><p>第 24-27 章：多智能体、性能优化、记忆、配置</p></div>
+    <div class="part"><h4>总结篇</h4><p>第 28-30 章：设计模式、工程实践、学习路线</p></div>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>本书由 everettjf 使用 Claude Code 分析泄露源码编写 | 保留出处即可自由转载</p>
+  <p style="margin-top:.5rem">
+    <a href="https://github.com/ccbook/ccbook.github.io">GitHub</a>
+    &middot; CC BY-NC-SA 4.0
+  </p>
+</footer>
+
+</body>
+</html>
