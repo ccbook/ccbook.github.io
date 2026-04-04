@@ -31,7 +31,7 @@
 <br/>
 
 <div class="version-info">
-当前版本：v1.0
+当前版本：{{VERSION}}
 </div>
 
 </div>
