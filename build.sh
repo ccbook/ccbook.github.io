@@ -120,6 +120,15 @@ html = html.replace('<body>', '<body>' + cover, 1)
 open(sys.argv[1], 'w', encoding='utf-8').write(html)
 " "$html_single"
 
+    # 注入中文字体样式
+    python3 -c "
+import sys
+html = open(sys.argv[1], encoding='utf-8').read()
+css = '<style>body, p, h1, h2, h3, h4, h5, h6, li, td, th, span, div { font-family: \"Hiragino Sans GB\", \"Heiti SC\", \"STSong\", \"Arial Unicode MS\", sans-serif; } code, pre { font-family: Menlo, \"Hiragino Sans GB\", monospace; }</style>'
+html = html.replace('</head>', css + '</head>', 1)
+open(sys.argv[1], 'w', encoding='utf-8').write(html)
+" "$html_single"
+
     weasyprint "$html_single" "$pdf"
     info "PDF 已生成 → $pdf"
     return 0
@@ -157,6 +166,14 @@ open(sys.argv[1], 'w', encoding='utf-8').write(html)
           --highlight-style=tango \
           -V lang=zh-CN \
           -o "$html_single"
+        # 注入中文字体样式
+        python3 -c "
+import sys
+html = open(sys.argv[1], encoding='utf-8').read()
+css = '<style>body, p, h1, h2, h3, h4, h5, h6, li, td, th, span, div { font-family: \"Hiragino Sans GB\", \"Heiti SC\", \"STSong\", \"Arial Unicode MS\", sans-serif; } code, pre { font-family: Menlo, \"Hiragino Sans GB\", monospace; }</style>'
+html = html.replace('</head>', css + '</head>', 1)
+open(sys.argv[1], 'w', encoding='utf-8').write(html)
+" "$html_single"
         weasyprint "$html_single" "$pdf"
       else
         error "PDF 生成失败。请安装以下任一工具："
