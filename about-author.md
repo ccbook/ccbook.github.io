@@ -56,3 +56,7 @@ Claude Code 使用以下主要技术构建：
 ## 版权声明
 
 本书为教育目的编写，所有源码分析和代码示例仅用于学习和研究。Claude Code 是 Anthropic 公司的产品，其商标和知识产权归 Anthropic 所有。
+
+## 获取最新版
+
+访问 [https://ccbook.github.io](https://ccbook.github.io) 获取本书最新版本（在线阅读、PDF、EPUB）。

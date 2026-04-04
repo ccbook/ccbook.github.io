@@ -32,7 +32,11 @@
 <br/>
 
 <div class="version-info">
-当前版本：{{VERSION}}
+当前版本：v1.3
+</div>
+
+<div class="latest-url">
+访问 <a href="https://ccbook.github.io">https://ccbook.github.io</a> 获取最新版
 </div>
 
 </div>
