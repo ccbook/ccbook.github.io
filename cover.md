@@ -36,7 +36,7 @@
 </div>
 
 <div class="latest-url">
-访问 <a href="https://ccbook.github.io">https://ccbook.github.io</a> 获取最新版
+访问 [https://ccbook.github.io](https://ccbook.github.io) 获取最新版
 </div>
 
 </div>
