@@ -55,6 +55,10 @@ merge_chapters() {
       warn "文件不存在，跳过: $ch"
     fi
   done
+  # 复制图片资源到输出目录
+  for img in cover.jpg wx.png; do
+    [[ -f "$img" ]] && cp -f "$img" "$OUTPUT_DIR/"
+  done
   info "已合并 ${#CHAPTERS[@]} 个文件 → $output"
 }
 
@@ -207,6 +211,7 @@ build_epub() {
     --metadata title="$BOOK_TITLE" \
     --metadata language="zh-CN" \
     --highlight-style=tango \
+    --resource-path=".:$OUTPUT_DIR" \
     $cover_opt \
     -o "$epub"
 

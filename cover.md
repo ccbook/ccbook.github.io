@@ -32,11 +32,23 @@
 <br/>
 
 <div class="version-info">
-当前版本：{{VERSION}}
+当前版本：v1.8
 </div>
 
 <div class="latest-url">
 访问 [https://ccbook.github.io](https://ccbook.github.io) 获取最新版
+</div>
+
+<br/>
+
+<div class="wechat-qrcode">
+
+**关注微信公众号**
+
+<img src="wx.png" alt="微信公众号" width="200" />
+
+*探索更多有趣的技术以及AI前沿技术*
+
 </div>
 
 </div>

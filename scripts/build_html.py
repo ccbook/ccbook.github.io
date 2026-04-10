@@ -564,9 +564,10 @@ def main():
         if cid == "cover":
             open(os.path.join(out, "index.html"), "w", encoding="utf-8").write(html)
 
-    # 4) 复制封面图
-    c = os.path.join(src, "cover.jpg")
-    if os.path.isfile(c): shutil.copy2(c, os.path.join(out, "cover.jpg"))
+    # 4) 复制图片资源
+    for img in ["cover.jpg", "wx.png"]:
+        p = os.path.join(src, img)
+        if os.path.isfile(p): shutil.copy2(p, os.path.join(out, img))
 
     print(f"\n  => {len(loaded)} 个页面已生成到 {out}/")
 

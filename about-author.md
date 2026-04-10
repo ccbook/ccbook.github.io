@@ -60,3 +60,13 @@ Claude Code 使用以下主要技术构建：
 ## 获取最新版
 
 访问 [https://ccbook.github.io](https://ccbook.github.io) 获取本书最新版本（在线阅读、PDF、EPUB）。
+
+## 关注微信公众号
+
+<div align="center">
+
+<img src="wx.png" alt="微信公众号" width="200" />
+
+*探索更多有趣的技术以及AI前沿技术*
+
+</div>
