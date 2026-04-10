@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第21章 Hook 系统——可编程的钩子 - 解密 Claude Code</title>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4EGRH2BGC6"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-4EGRH2BGC6');
+</script>
+<style>
+:root {
+  --sidebar-w:300px; --bg:#101418; --bg-side:#141a1e; --fg:#d4dde0;
+  --fg-dim:#8899a6; --accent:#00d4ff; --accent2:#20b2aa;
+  --code-bg:#181e24; --border:#283038; --hover:#1c2428; --radius:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--fg);line-height:1.85;font-size:15px;
+}
+
+/* ── 布局 ── */
+.layout{display:flex;min-height:100vh}
+.sidebar{
+  position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;
+  background:var(--bg-side);border-right:1px solid var(--border);
+  overflow-y:auto;z-index:100;display:flex;flex-direction:column;
+}
+.sidebar-header{padding:1.4rem 1.2rem .8rem;border-bottom:1px solid var(--border);flex-shrink:0}
+.sidebar-header h1{font-size:1.05rem;color:var(--accent);margin:0;font-weight:700}
+.sidebar-header p{font-size:.72rem;color:var(--fg-dim);margin-top:.25rem}
+.sidebar-search{padding:.7rem 1.2rem;border-bottom:1px solid var(--border);flex-shrink:0}
+.sidebar-search input{
+  width:100%;padding:.4rem .7rem;background:var(--code-bg);
+  border:1px solid var(--border);border-radius:var(--radius);
+  color:var(--fg);font-size:.8rem;outline:none;
+}
+.sidebar-search input:focus{border-color:var(--accent)}
+.sidebar-search input::placeholder{color:var(--fg-dim)}
+.toc{padding:.5rem 0;overflow-y:auto;flex:1}
+.toc-group{
+  padding:.85rem 1.2rem .25rem;font-size:.68rem;font-weight:700;
+  color:var(--accent2);text-transform:uppercase;letter-spacing:.8px;
+}
+.toc-item{
+  display:block;padding:.3rem 1.2rem .3rem 1.5rem;font-size:.8rem;
+  color:var(--fg-dim);text-decoration:none;border-left:3px solid transparent;
+  transition:all .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.toc-item:hover{color:var(--fg);background:var(--hover)}
+.toc-item.active{color:var(--accent);border-left-color:var(--accent);background:var(--hover);font-weight:600}
+.toc-item.hidden{display:none}
+.toc-item .read-dot{
+  display:inline-block;width:6px;height:6px;border-radius:50%;
+  margin-right:6px;flex-shrink:0;background:transparent;vertical-align:middle;
+}
+.toc-item .read-dot.done{background:#4ade80}
+
+/* ── 阅读进度面板 ── */
+.progress-panel{
+  border-top:1px solid var(--border);padding:.9rem 1.2rem;flex-shrink:0;
+}
+.progress-panel .progress-title{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:.72rem;color:var(--fg-dim);margin-bottom:.45rem;
+}
+.progress-panel .progress-title button{
+  background:none;border:none;color:var(--fg-dim);font-size:.68rem;
+  cursor:pointer;padding:0;text-decoration:underline;
+}
+.progress-panel .progress-title button:hover{color:var(--accent)}
+.progress-track{
+  width:100%;height:6px;background:var(--code-bg);border-radius:3px;overflow:hidden;
+}
+.progress-track .progress-fill{
+  height:100%;border-radius:3px;transition:width .4s;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+}
+.progress-panel .progress-text{
+  font-size:.7rem;color:var(--fg-dim);margin-top:.35rem;text-align:center;
+}
+.progress-panel .last-read{
+  font-size:.68rem;color:var(--fg-dim);margin-top:.5rem;padding-top:.45rem;
+  border-top:1px solid var(--border);
+}
+.progress-panel .last-read a{
+  color:var(--accent);font-size:.72rem;
+}
+
+/* ── 内容 ── */
+.content{margin-left:var(--sidebar-w);flex:1;min-width:0}
+.chapter{max-width:820px;margin:0 auto;padding:2.5rem 3rem 3rem}
+
+/* ── 排版 ── */
+h1{font-size:1.8rem;color:var(--accent);margin:1.5rem 0 1rem;padding-bottom:.5rem;border-bottom:2px solid var(--accent);line-height:1.3}
+h2{font-size:1.3rem;color:#7ec8e3;margin:2rem 0 .7rem;padding-bottom:.3rem;border-bottom:1px solid var(--border)}
+h3{font-size:1.08rem;color:#a8d8ea;margin:1.5rem 0 .5rem}
+h4{font-size:1rem;color:#b8c8d0;margin:1.2rem 0 .4rem}
+p{margin:.7rem 0}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+strong{color:#fff;font-weight:600}
+em{color:#a0b4be}
+
+/* ── 代码 ── */
+code{
+  background:var(--code-bg);padding:.14em .42em;border-radius:4px;
+  font-size:.87em;font-family:"JetBrains Mono","Fira Code","SF Mono",Menlo,monospace;color:#e0c080;
+}
+pre{
+  background:var(--code-bg);padding:1rem 1.2rem;border-radius:var(--radius);
+  overflow-x:auto;margin:1rem 0;border:1px solid var(--border);line-height:1.55;
+}
+pre code{background:none;padding:0;color:var(--fg);font-size:.84em}
+
+/* ── 表格 ── */
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.9em}
+th,td{border:1px solid var(--border);padding:.45rem .75rem;text-align:left}
+th{background:var(--code-bg);color:var(--accent);font-weight:600;font-size:.86em}
+tr:hover td{background:rgba(255,255,255,.02)}
+
+/* ── 引用 / 列表 / 其他 ── */
+blockquote{border-left:4px solid var(--accent2);padding:.4rem 1rem;margin:1rem 0;color:var(--fg-dim);background:rgba(32,178,170,.08);border-radius:0 var(--radius) var(--radius) 0}
+blockquote p{margin:.25rem 0}
+ul,ol{padding-left:1.5rem;margin:.5rem 0}
+li{margin:.25rem 0}
+hr{border:none;border-top:1px solid var(--border);margin:2.5rem 0}
+img{max-width:100%;border-radius:var(--radius)}
+
+/* ── 下载按钮 ── */
+.download-buttons{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin:1rem 0}
+.dl-btn{
+  display:inline-block;padding:.65rem 1.8rem;border-radius:var(--radius);
+  font-size:.95rem;font-weight:600;text-decoration:none;transition:all .2s;
+  border:2px solid var(--border);
+}
+.dl-btn:hover{text-decoration:none}
+.dl-start{background:var(--accent);color:#000;border-color:var(--accent)}
+.dl-start:hover{background:#00bfe0;border-color:#00bfe0;color:#000}
+.dl-pdf{background:transparent;color:var(--fg);border-color:var(--accent)}
+.dl-pdf:hover{background:var(--accent);border-color:var(--accent);color:#000}
+.dl-epub{background:transparent;color:var(--fg);border-color:var(--border)}
+.dl-epub:hover{border-color:var(--accent);color:var(--accent)}
+.version-info{font-size:.8rem;color:var(--fg-dim)}
+
+/* ── 翻页导航 ── */
+.page-nav{
+  display:flex;justify-content:space-between;align-items:center;gap:1rem;
+  margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border);
+}
+.page-nav a{
+  display:inline-flex;align-items:center;gap:.4rem;
+  padding:.55rem 1.1rem;border-radius:var(--radius);
+  background:var(--code-bg);border:1px solid var(--border);
+  color:var(--fg);font-size:.85rem;text-decoration:none;transition:all .2s;
+  max-width:45%;
+}
+.page-nav a:hover{border-color:var(--accent);color:var(--accent)}
+.page-nav a span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.page-nav .spacer{flex:1}
+
+/* ── 进度条 ── */
+.progress-bar{position:fixed;top:0;left:var(--sidebar-w);right:0;height:3px;z-index:110}
+.progress-bar .bar{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .1s}
+
+/* ── 回到顶部 ── */
+.back-top{
+  position:fixed;bottom:2rem;right:2rem;width:2.4rem;height:2.4rem;border-radius:50%;
+  background:var(--accent2);color:#fff;border:none;font-size:1rem;cursor:pointer;
+  opacity:0;transition:opacity .3s;display:flex;align-items:center;justify-content:center;z-index:80;
+}
+.back-top.show{opacity:.8}
+.back-top:hover{opacity:1}
+
+/* ── 移动端 ── */
+.menu-btn{
+  display:none;position:fixed;top:.7rem;left:.7rem;z-index:200;
+  background:var(--bg-side);border:1px solid var(--border);border-radius:var(--radius);
+  color:var(--accent);font-size:1.2rem;width:2.4rem;height:2.4rem;cursor:pointer;
+  align-items:center;justify-content:center;
+}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:90}
+@media(max-width:900px){
+  :root{--sidebar-w:270px}
+  .chapter{padding:2rem 1.5rem 2.5rem}
+}
+@media(max-width:700px){
+  .sidebar{transform:translateX(-100%);transition:transform .3s}
+  .sidebar.open{transform:translateX(0)}
+  .content{margin-left:0}
+  .menu-btn{display:flex}
+  .overlay.show{display:block}
+  .chapter{padding:3.2rem 1.1rem 2.5rem}
+  .progress-bar{left:0}
+  h1{font-size:1.45rem} h2{font-size:1.15rem}
+}
+</style>
+</head>
+<body>
+
+<button class="menu-btn" onclick="toggleSidebar()">&#9776;</button>
+<div class="overlay" onclick="toggleSidebar()"></div>
+<div class="progress-bar"><div class="bar"></div></div>
+
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <h1><a href="/" style="color:inherit;text-decoration:none">解密 Claude Code</a></h1>
+      <p>AI 编程助手的源码之旅</p>
+    </div>
+    <div class="sidebar-search">
+      <input type="text" placeholder="搜索章节..." oninput="filterToc(this.value)">
+    </div>
+    <div class="toc"><a class="toc-item" href="cover.html" data-cid="cover"><span class="read-dot" data-cid="cover"></span>封面</a>
+<a class="toc-item" href="preface.html" data-cid="preface"><span class="read-dot" data-cid="preface"></span>前言</a>
+<div class="toc-group">第一部分 起步篇</div>
+<a class="toc-item" href="ch01.html" data-cid="ch01"><span class="read-dot" data-cid="ch01"></span>第1章 欢迎来到 Claude Code 的世界</a>
+<a class="toc-item" href="ch02.html" data-cid="ch02"><span class="read-dot" data-cid="ch02"></span>第2章 源码全景地图</a>
+<a class="toc-item" href="ch03.html" data-cid="ch03"><span class="read-dot" data-cid="ch03"></span>第3章 从零理解 TypeScript 与 React</a>
+<div class="toc-group">第二部分 核心架构篇</div>
+<a class="toc-item" href="ch04.html" data-cid="ch04"><span class="read-dot" data-cid="ch04"></span>第4章 程序的大门——入口文件解析</a>
+<a class="toc-item" href="ch05.html" data-cid="ch05"><span class="read-dot" data-cid="ch05"></span>第5章 终端里的 React——Ink 框架揭秘</a>
+<a class="toc-item" href="ch06.html" data-cid="ch06"><span class="read-dot" data-cid="ch06"></span>第6章 状态管理——程序的“记忆”</a>
+<a class="toc-item" href="ch07.html" data-cid="ch07"><span class="read-dot" data-cid="ch07"></span>第7章 命令系统——斜杠的魔法</a>
+<div class="toc-group">第三部分 对话引擎篇</div>
+<a class="toc-item" href="ch08.html" data-cid="ch08"><span class="read-dot" data-cid="ch08"></span>第8章 与 AI 对话的秘密——消息系统</a>
+<a class="toc-item" href="ch09.html" data-cid="ch09"><span class="read-dot" data-cid="ch09"></span>第9章 查询引擎——大脑中枢</a>
+<a class="toc-item" href="ch10.html" data-cid="ch10"><span class="read-dot" data-cid="ch10"></span>第10章 流式响应——逐字显示的魔法</a>
+<a class="toc-item" href="ch11.html" data-cid="ch11"><span class="read-dot" data-cid="ch11"></span>第11章 上下文管理——有限的记忆</a>
+<div class="toc-group">第四部分 工具系统篇</div>
+<a class="toc-item" href="ch12.html" data-cid="ch12"><span class="read-dot" data-cid="ch12"></span>第12章 工具的世界——从设计到实现</a>
+<a class="toc-item" href="ch13.html" data-cid="ch13"><span class="read-dot" data-cid="ch13"></span>第13章 Bash 工具——最强大也最危险</a>
+<a class="toc-item" href="ch14.html" data-cid="ch14"><span class="read-dot" data-cid="ch14"></span>第14章 文件三剑客——Read、Write、Edit</a>
+<a class="toc-item" href="ch15.html" data-cid="ch15"><span class="read-dot" data-cid="ch15"></span>第15章 搜索双雄——Grep 与 Glob</a>
+<a class="toc-item" href="ch16.html" data-cid="ch16"><span class="read-dot" data-cid="ch16"></span>第16章 Agent 工具——AI 的分身术</a>
+<div class="toc-group">第五部分 安全与权限篇</div>
+<a class="toc-item" href="ch17.html" data-cid="ch17"><span class="read-dot" data-cid="ch17"></span>第17章 权限系统——信任的层级</a>
+<a class="toc-item" href="ch18.html" data-cid="ch18"><span class="read-dot" data-cid="ch18"></span>第18章 安全防线——危险命令检测</a>
+<a class="toc-item" href="ch19.html" data-cid="ch19"><span class="read-dot" data-cid="ch19"></span>第19章 沙箱机制——隔离的艺术</a>
+<div class="toc-group">第六部分 扩展与集成篇</div>
+<a class="toc-item" href="ch20.html" data-cid="ch20"><span class="read-dot" data-cid="ch20"></span>第20章 MCP 协议——工具的万能接口</a>
+<a class="toc-item active" href="ch21.html" data-cid="ch21"><span class="read-dot" data-cid="ch21"></span>第21章 Hook 系统——可编程的钩子</a>
+<a class="toc-item" href="ch22.html" data-cid="ch22"><span class="read-dot" data-cid="ch22"></span>第22章 IDE 桥接——编辑器中的 AI</a>
+<a class="toc-item" href="ch23.html" data-cid="ch23"><span class="read-dot" data-cid="ch23"></span>第23章 插件与技能——无限扩展</a>
+<div class="toc-group">第七部分 高级话题篇</div>
+<a class="toc-item" href="ch24.html" data-cid="ch24"><span class="read-dot" data-cid="ch24"></span>第24章 多智能体——AI 的团队协作</a>
+<a class="toc-item" href="ch25.html" data-cid="ch25"><span class="read-dot" data-cid="ch25"></span>第25章 性能优化——毫秒必争</a>
+<a class="toc-item" href="ch26.html" data-cid="ch26"><span class="read-dot" data-cid="ch26"></span>第26章 持久化记忆——跨会话的智慧</a>
+<a class="toc-item" href="ch27.html" data-cid="ch27"><span class="read-dot" data-cid="ch27"></span>第27章 配置系统——千人千面</a>
+<div class="toc-group">第八部分 总结篇</div>
+<a class="toc-item" href="ch28.html" data-cid="ch28"><span class="read-dot" data-cid="ch28"></span>第28章 架构之美——设计模式总结</a>
+<a class="toc-item" href="ch29.html" data-cid="ch29"><span class="read-dot" data-cid="ch29"></span>第29章 从源码到产品——工程实践启示</a>
+<a class="toc-item" href="ch30.html" data-cid="ch30"><span class="read-dot" data-cid="ch30"></span>第30章 你的下一步——成为更好的程序员</a>
+<div class="toc-group">附录</div>
+<a class="toc-item" href="appendix-a.html" data-cid="appendix-a"><span class="read-dot" data-cid="appendix-a"></span>附录 A 术语表</a>
+<a class="toc-item" href="appendix-b.html" data-cid="appendix-b"><span class="read-dot" data-cid="appendix-b"></span>附录 B 源码关键文件索引</a>
+<a class="toc-item" href="appendix-c.html" data-cid="appendix-c"><span class="read-dot" data-cid="appendix-c"></span>附录 C 全书知识地图</a>
+<a class="toc-item" href="about.html" data-cid="about"><span class="read-dot" data-cid="about"></span>关于本书</a></div>
+    <div class="progress-panel">
+      <div class="progress-title">
+        <span>阅读进度</span>
+        <button onclick="clearProgress()">清除记录</button>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="readFill"></div></div>
+      <div class="progress-text" id="readText">0 / 0 章</div>
+      <div class="last-read" id="lastRead"></div>
+    </div>
+  </nav>
+
+  <main class="content">
+    <article class="chapter">
+<h1 id="ch21-h1">第21章：Hook 系统——可编程的钩子</h1>
+
+<h2 id="ch21-h2">什么是 Hook？</h2>
+
+<p>&quot;Hook&quot;（钩子）这个词在编程中很常见。想象你在河边钓鱼——你在河流的某个点放下一个钩子，当鱼经过时钩子就会触发。</p>
+
+<p>在 Claude Code 中，Hook 的概念类似：你在程序流程的某个&quot;点&quot;上放置一段代码，当程序执行到那个点时，你的代码就会被触发。</p>
+
+<h2 id="ch21-h3">为什么需要 Hook？</h2>
+
+<p>假设你有以下需求：</p>
+
+<ul>
+<li>- 每次 AI 要执行 <code>git push</code> 之前，先运行测试</li>
+<li>- 每次会话结束后，把对话摘要保存到笔记本</li>
+<li>- 每次 AI 修改文件后，自动运行代码格式化工具</li>
+<li>- 每次提交消息前，检查有没有包含敏感信息</li>
+</ul>
+
+<p>这些需求有一个共同点：<strong>在某个事件发生时，自动执行某个操作。</strong></p>
+
+<p>你当然可以每次手动做这些事，但那太麻烦了。Hook 让你&quot;设置一次，自动执行&quot;。</p>
+
+<h2 id="ch21-h4">Hook 的种类</h2>
+
+<p>Claude Code 支持多种 Hook 事件：</p>
+
+<pre><code>
+程序生命周期：
+  Setup           → 程序启动时
+  SessionStart    → 会话开始时
+  SessionEnd      → 会话结束时
+
+消息相关：
+  UserPromptSubmit → 用户发送消息前
+
+工具相关：
+  PreToolUse      → 工具执行前
+  PostToolUse     → 工具执行后
+
+其他：
+  CwdChanged      → 工作目录改变时
+  FileChanged     → 文件被修改时
+</code></pre>
+
+<h2 id="ch21-h5">配置 Hook</h2>
+
+<p>Hook 在 <code>settings.json</code> 中配置：</p>
+
+<pre><code class="language-json">
+{
+  &quot;hooks&quot;: {
+    &quot;PreToolUse&quot;: [
+      {
+        &quot;matcher&quot;: &quot;Bash&quot;,
+        &quot;hooks&quot;: [
+          {
+            &quot;type&quot;: &quot;command&quot;,
+            &quot;command&quot;: &quot;echo &#x27;即将执行 Bash 命令&#x27;&quot;
+          }
+        ]
+      }
+    ],
+    &quot;PostToolUse&quot;: [
+      {
+        &quot;matcher&quot;: &quot;FileEdit&quot;,
+        &quot;hooks&quot;: [
+          {
+            &quot;type&quot;: &quot;command&quot;,
+            &quot;command&quot;: &quot;npx prettier --write $CLAUDE_FILE_PATH&quot;
+          }
+        ]
+      }
+    ],
+    &quot;UserPromptSubmit&quot;: [
+      {
+        &quot;hooks&quot;: [
+          {
+            &quot;type&quot;: &quot;command&quot;,
+            &quot;command&quot;: &quot;python ~/scripts/check_sensitive_info.py&quot;
+          }
+        ]
+      }
+    ]
+  }
+}
+</code></pre>
+
+<h3 id="ch21-h6">Hook 配置的结构</h3>
+
+<pre><code class="language-typescript">
+{
+  &quot;matcher&quot;: &quot;工具名&quot;,    // 可选：只对特定工具触发
+  &quot;hooks&quot;: [
+    {
+      &quot;type&quot;: &quot;command&quot;,   // Hook 类型（目前只支持 command）
+      &quot;command&quot;: &quot;要执行的命令&quot;
+    }
+  ]
+}
+</code></pre>
+
+<h2 id="ch21-h7">Hook 可以做什么？</h2>
+
+<h3 id="ch21-h8">1. 阻止操作</h3>
+
+<p>如果 Hook 脚本返回非零退出码，操作会被阻止：</p>
+
+<pre><code class="language-bash">
+#!/bin/bash
+# check_before_push.sh
+# 在 git push 之前运行测试
+
+npm test
+if [ $? -ne 0 ]; then
+  echo &quot;测试未通过，阻止 push&quot;
+  exit 1  # 非零退出码 → 阻止操作
+fi
+exit 0    # 零退出码 → 允许操作
+</code></pre>
+
+<h3 id="ch21-h9">2. 修改输入</h3>
+
+<p>Hook 可以修改工具的输入参数：</p>
+
+<pre><code class="language-bash">
+#!/bin/bash
+# normalize_path.sh
+# 把相对路径转换为绝对路径
+
+# 读取输入（通过环境变量或 stdin）
+INPUT_PATH=&quot;$CLAUDE_TOOL_INPUT_PATH&quot;
+
+# 转换为绝对路径
+ABS_PATH=$(realpath &quot;$INPUT_PATH&quot;)
+
+# 输出修改后的输入（通过 stdout）
+echo &quot;{\&quot;path\&quot;: \&quot;$ABS_PATH\&quot;}&quot;
+</code></pre>
+
+<h3 id="ch21-h10">3. 添加上下文</h3>
+
+<p>Hook 可以向 AI 的上下文中注入额外信息：</p>
+
+<pre><code class="language-bash">
+#!/bin/bash
+# add_context.sh
+# 在每条消息前添加项目状态信息
+
+echo &quot;当前 Git 分支: $(git branch --show-current)&quot;
+echo &quot;未提交的更改: $(git status --short | wc -l) 个文件&quot;
+echo &quot;最近的提交: $(git log --oneline -1)&quot;
+</code></pre>
+
+<p>这些信息会作为&quot;系统提示&quot;附加到消息中，帮助 AI 更好地理解当前状态。</p>
+
+<h3 id="ch21-h11">4. 后处理</h3>
+
+<pre><code class="language-bash">
+#!/bin/bash
+# format_after_edit.sh
+# 文件编辑后自动格式化
+
+FILE_PATH=&quot;$CLAUDE_FILE_PATH&quot;
+EXTENSION=&quot;${FILE_PATH##*.}&quot;
+
+case &quot;$EXTENSION&quot; in
+  ts|tsx|js|jsx)
+    npx prettier --write &quot;$FILE_PATH&quot;
+    ;;
+  py)
+    black &quot;$FILE_PATH&quot;
+    ;;
+  go)
+    gofmt -w &quot;$FILE_PATH&quot;
+    ;;
+esac
+</code></pre>
+
+<h2 id="ch21-h12">Hook 的执行流程</h2>
+
+<p>以 PreToolUse Hook 为例：</p>
+
+<pre><code>
+AI 请求使用 Bash 工具
+    │
+    ▼
+检查是否有 PreToolUse Hook 匹配 &quot;Bash&quot;
+    │
+    ▼（如果有）
+执行 Hook 脚本
+    │
+    ├── 退出码 = 0 → 继续执行工具
+    ├── 退出码 ≠ 0 → 阻止工具执行
+    └── 有输出 → 作为额外上下文添加
+    │
+    ▼
+继续正常的权限检查流程
+</code></pre>
+
+<h2 id="ch21-h13">Hook 的超时</h2>
+
+<p>Hook 不能无限运行：</p>
+
+<pre><code>
+工具相关的 Hook：最多 10 分钟
+SessionEnd Hook：最多 1.5 秒
+</code></pre>
+
+<p>为什么 SessionEnd 只有 1.5 秒？因为用户要关闭程序，不能让 Hook 阻塞关闭过程。如果 Hook 超时，会被强制终止。</p>
+
+<h2 id="ch21-h14">环境变量</h2>
+
+<p>Hook 脚本可以通过环境变量获取上下文信息：</p>
+
+<pre><code class="language-bash">
+$CLAUDE_SESSION_ID       # 当前会话 ID
+$CLAUDE_TOOL_NAME        # 工具名称（PreToolUse/PostToolUse）
+$CLAUDE_TOOL_INPUT       # 工具输入（JSON 格式）
+$CLAUDE_FILE_PATH        # 文件路径（FileEdit/FileWrite）
+$CLAUDE_WORKING_DIR      # 当前工作目录
+</code></pre>
+
+<h2 id="ch21-h15">实用 Hook 示例</h2>
+
+<h3 id="ch21-h16">示例 1：自动保存对话摘要</h3>
+
+<pre><code class="language-json">
+{
+  &quot;hooks&quot;: {
+    &quot;SessionEnd&quot;: [
+      {
+        &quot;hooks&quot;: [{
+          &quot;type&quot;: &quot;command&quot;,
+          &quot;command&quot;: &quot;echo \&quot;Session $CLAUDE_SESSION_ID ended at $(date)\&quot; &gt;&gt; ~/claude-sessions.log&quot;
+        }]
+      }
+    ]
+  }
+}
+</code></pre>
+
+<h3 id="ch21-h17">示例 2：禁止修改特定文件</h3>
+
+<pre><code class="language-json">
+{
+  &quot;hooks&quot;: {
+    &quot;PreToolUse&quot;: [
+      {
+        &quot;matcher&quot;: &quot;FileEdit&quot;,
+        &quot;hooks&quot;: [{
+          &quot;type&quot;: &quot;command&quot;,
+          &quot;command&quot;: &quot;if echo $CLAUDE_TOOL_INPUT | grep -q &#x27;package-lock.json&#x27;; then exit 1; fi&quot;
+        }]
+      }
+    ]
+  }
+}
+</code></pre>
+
+<h3 id="ch21-h18">示例 3：Git push 前检查</h3>
+
+<pre><code class="language-json">
+{
+  &quot;hooks&quot;: {
+    &quot;PreToolUse&quot;: [
+      {
+        &quot;matcher&quot;: &quot;Bash&quot;,
+        &quot;hooks&quot;: [{
+          &quot;type&quot;: &quot;command&quot;,
+          &quot;command&quot;: &quot;if echo $CLAUDE_TOOL_INPUT | grep -q &#x27;git push&#x27;; then npm test || exit 1; fi&quot;
+        }]
+      }
+    ]
+  }
+}
+</code></pre>
+
+<h2 id="ch21-h19">Hook vs 权限规则</h2>
+
+<p>你可能注意到 Hook 和权限规则有些重叠。它们的区别是：</p>
+
+<table><thead><tr><th></th><th>权限规则</th><th>Hook</th></tr></thead><tbody>
+<tr><td>复杂度</td><td>简单的匹配规则</td><td>可以运行任意脚本</td></tr>
+<tr><td>能力</td><td>只能 allow/deny/ask</td><td>可以修改输入、添加上下文、后处理</td></tr>
+<tr><td>配置</td><td>模式字符串</td><td>Shell 命令</td></tr>
+<tr><td>适用场景</td><td>简单的黑白名单</td><td>复杂的业务逻辑</td></tr>
+</tbody></table>
+
+<p>简单来说：权限规则是&quot;简单的开关&quot;，Hook 是&quot;可编程的逻辑&quot;。</p>
+
+<h2 id="ch21-h20">本章小结</h2>
+
+<ul>
+<li>- <strong>Hook</strong> 在程序流程的特定点触发用户定义的脚本</li>
+<li>- 支持多种事件：启动、会话、消息、工具执行前后</li>
+<li>- Hook 可以：阻止操作、修改输入、添加上下文、后处理</li>
+<li>- 有超时限制：工具 Hook 10 分钟，会话结束 Hook 1.5 秒</li>
+<li>- 通过环境变量获取上下文信息</li>
+</ul>
+
+<h2 id="ch21-h21">Hook 的设计智慧</h2>
+
+<p>Hook 系统体现了一个重要的设计原则：<strong>开放-封闭原则（Open-Closed Principle）</strong>。</p>
+
+<p>这个原则说的是：<strong>软件应该对扩展开放，对修改封闭。</strong></p>
+
+<p>什么意思？</p>
+<ul>
+<li>- <strong>对扩展开放</strong>：你可以通过添加 Hook 来增加新行为</li>
+<li>- <strong>对修改封闭</strong>：你不需要修改 Claude Code 的核心代码</li>
+</ul>
+
+<p>不用 Hook 时：</p>
+<pre><code>
+想加&quot;自动格式化&quot;功能？
+→ 修改 FileEditTool 的源代码
+→ 可能引入 bug
+→ 需要重新编译和部署
+</code></pre>
+
+<p>用 Hook 时：</p>
+<pre><code>
+想加&quot;自动格式化&quot;功能？
+→ 在 settings.json 里加一个 PostToolUse Hook
+→ 不修改任何源代码
+→ 随时可以添加或删除
+</code></pre>
+
+<p>这就像给房子装修：你不需要拆墙（修改源代码），只需要挂画框（添加 Hook）。</p>
+
+<p>下一章，我们将看看 Claude Code 如何与 IDE 编辑器集成。</p>
+
+<hr/>
+
+<p><em>本书由 everettjf 使用 Claude Code 分析泄露源码编写 | 保留出处即可自由转载</em></p>
+
+    </article>
+    <nav class="chapter page-nav">
+      <a href="ch20.html" data-dir="prev"><span>&#8592;</span> <span>第20章 MCP 协议——工具的万能接口</span></a>
+      <span class="spacer"></span>
+      <a href="ch22.html" data-dir="next"><span>第22章 IDE 桥接——编辑器中的 AI</span> <span>&#8594;</span></a>
+    </nav>
+  </main>
+</div>
+
+<button class="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">&#8593;</button>
+
+<script>
+// ── 基础交互 ──
+function toggleSidebar(){
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.querySelector('.overlay').classList.toggle('show');
+}
+function filterToc(q){
+  q=q.toLowerCase();
+  document.querySelectorAll('.toc-item').forEach(a=>{
+    a.classList.toggle('hidden',q&&!a.textContent.toLowerCase().includes(q));
+  });
+}
+window.addEventListener('scroll',()=>{
+  const h=document.documentElement;
+  const pct=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100;
+  document.querySelector('.progress-bar .bar').style.width=pct+'%';
+  document.querySelector('.back-top').classList.toggle('show',h.scrollTop>400);
+},{passive:true});
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  if(e.key==='ArrowLeft'){ const a=document.querySelector('.page-nav a[data-dir=prev]'); if(a) a.click(); }
+  if(e.key==='ArrowRight'){ const a=document.querySelector('.page-nav a[data-dir=next]'); if(a) a.click(); }
+});
+
+// ── 阅读进度（localStorage）──
+const STORAGE_KEY = 'dcc_read_progress';
+const CURRENT_CID = 'ch21';
+const ALL_CIDS = ["cover", "preface", "ch01", "ch02", "ch03", "ch04", "ch05", "ch06", "ch07", "ch08", "ch09", "ch10", "ch11", "ch12", "ch13", "ch14", "ch15", "ch16", "ch17", "ch18", "ch19", "ch20", "ch21", "ch22", "ch23", "ch24", "ch25", "ch26", "ch27", "ch28", "ch29", "ch30", "appendix-a", "appendix-b", "appendix-c", "about"];
+const TOTAL = ALL_CIDS.length;
+
+function getProgress(){
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveProgress(p){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+}
+
+// 标记当前章节为已读
+function markRead(){
+  const p = getProgress();
+  if(!p[CURRENT_CID]){
+    p[CURRENT_CID] = new Date().toISOString();
+    saveProgress(p);
+  }
+  renderProgress();
+}
+
+// 清除全部进度
+function clearProgress(){
+  if(!confirm('确定要清除所有阅读记录吗？')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  renderProgress();
+}
+
+// 渲染进度 UI
+function renderProgress(){
+  const p = getProgress();
+  const readCount = ALL_CIDS.filter(id => p[id]).length;
+  const pct = TOTAL ? Math.round(readCount / TOTAL * 100) : 0;
+
+  // 进度条
+  const fill = document.getElementById('readFill');
+  const text = document.getElementById('readText');
+  if(fill) fill.style.width = pct + '%';
+  if(text) text.textContent = readCount + ' / ' + TOTAL + ' 章（' + pct + '%）';
+
+  // 侧边栏已读标记
+  document.querySelectorAll('.read-dot').forEach(dot => {
+    dot.classList.toggle('done', !!p[dot.dataset.cid]);
+  });
+
+  // 上次阅读
+  const lastEl = document.getElementById('lastRead');
+  if(lastEl){
+    const entries = Object.entries(p).sort((a,b) => b[1].localeCompare(a[1]));
+    if(entries.length > 0){
+      const [lastCid, lastTime] = entries[0];
+      const link = document.querySelector('.toc-item[data-cid="'+lastCid+'"]');
+      const title = link ? link.textContent.trim() : lastCid;
+      const d = new Date(lastTime);
+      const timeStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')
+        +' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+      lastEl.innerHTML = '上次阅读：<a href="'+lastCid+'.html">'+title+'</a><br><span style="font-size:.65rem">'+timeStr+'</span>';
+    } else {
+      lastEl.innerHTML = '<span style="color:var(--fg-dim)">还没有阅读记录</span>';
+    }
+  }
+
+  // 如果全部读完，显示庆祝
+  if(readCount === TOTAL && TOTAL > 0 && fill){
+    fill.style.background = 'linear-gradient(90deg,#4ade80,#22d3ee)';
+  }
+}
+
+// 滚动到底部 80% 自动标记已读
+let _marked = false;
+window.addEventListener('scroll', ()=>{
+  if(_marked) return;
+  const h = document.documentElement;
+  const scrollPct = h.scrollTop / (h.scrollHeight - h.clientHeight);
+  if(scrollPct > 0.8){
+    _marked = true;
+    markRead();
+  }
+}, {passive:true});
+
+// 页面加载后也立即标记（对于短内容页面）
+window.addEventListener('load', ()=>{
+  const h = document.documentElement;
+  if(h.scrollHeight <= h.clientHeight * 1.3){
+    // 内容不长，直接标记
+    setTimeout(()=>{ markRead(); }, 2000);
+  }
+  renderProgress();
+});
+</script>
+</body>
+</html>

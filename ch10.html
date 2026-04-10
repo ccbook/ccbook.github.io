@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第10章 流式响应——逐字显示的魔法 - 解密 Claude Code</title>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4EGRH2BGC6"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-4EGRH2BGC6');
+</script>
+<style>
+:root {
+  --sidebar-w:300px; --bg:#101418; --bg-side:#141a1e; --fg:#d4dde0;
+  --fg-dim:#8899a6; --accent:#00d4ff; --accent2:#20b2aa;
+  --code-bg:#181e24; --border:#283038; --hover:#1c2428; --radius:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--fg);line-height:1.85;font-size:15px;
+}
+
+/* ── 布局 ── */
+.layout{display:flex;min-height:100vh}
+.sidebar{
+  position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;
+  background:var(--bg-side);border-right:1px solid var(--border);
+  overflow-y:auto;z-index:100;display:flex;flex-direction:column;
+}
+.sidebar-header{padding:1.4rem 1.2rem .8rem;border-bottom:1px solid var(--border);flex-shrink:0}
+.sidebar-header h1{font-size:1.05rem;color:var(--accent);margin:0;font-weight:700}
+.sidebar-header p{font-size:.72rem;color:var(--fg-dim);margin-top:.25rem}
+.sidebar-search{padding:.7rem 1.2rem;border-bottom:1px solid var(--border);flex-shrink:0}
+.sidebar-search input{
+  width:100%;padding:.4rem .7rem;background:var(--code-bg);
+  border:1px solid var(--border);border-radius:var(--radius);
+  color:var(--fg);font-size:.8rem;outline:none;
+}
+.sidebar-search input:focus{border-color:var(--accent)}
+.sidebar-search input::placeholder{color:var(--fg-dim)}
+.toc{padding:.5rem 0;overflow-y:auto;flex:1}
+.toc-group{
+  padding:.85rem 1.2rem .25rem;font-size:.68rem;font-weight:700;
+  color:var(--accent2);text-transform:uppercase;letter-spacing:.8px;
+}
+.toc-item{
+  display:block;padding:.3rem 1.2rem .3rem 1.5rem;font-size:.8rem;
+  color:var(--fg-dim);text-decoration:none;border-left:3px solid transparent;
+  transition:all .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.toc-item:hover{color:var(--fg);background:var(--hover)}
+.toc-item.active{color:var(--accent);border-left-color:var(--accent);background:var(--hover);font-weight:600}
+.toc-item.hidden{display:none}
+.toc-item .read-dot{
+  display:inline-block;width:6px;height:6px;border-radius:50%;
+  margin-right:6px;flex-shrink:0;background:transparent;vertical-align:middle;
+}
+.toc-item .read-dot.done{background:#4ade80}
+
+/* ── 阅读进度面板 ── */
+.progress-panel{
+  border-top:1px solid var(--border);padding:.9rem 1.2rem;flex-shrink:0;
+}
+.progress-panel .progress-title{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:.72rem;color:var(--fg-dim);margin-bottom:.45rem;
+}
+.progress-panel .progress-title button{
+  background:none;border:none;color:var(--fg-dim);font-size:.68rem;
+  cursor:pointer;padding:0;text-decoration:underline;
+}
+.progress-panel .progress-title button:hover{color:var(--accent)}
+.progress-track{
+  width:100%;height:6px;background:var(--code-bg);border-radius:3px;overflow:hidden;
+}
+.progress-track .progress-fill{
+  height:100%;border-radius:3px;transition:width .4s;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+}
+.progress-panel .progress-text{
+  font-size:.7rem;color:var(--fg-dim);margin-top:.35rem;text-align:center;
+}
+.progress-panel .last-read{
+  font-size:.68rem;color:var(--fg-dim);margin-top:.5rem;padding-top:.45rem;
+  border-top:1px solid var(--border);
+}
+.progress-panel .last-read a{
+  color:var(--accent);font-size:.72rem;
+}
+
+/* ── 内容 ── */
+.content{margin-left:var(--sidebar-w);flex:1;min-width:0}
+.chapter{max-width:820px;margin:0 auto;padding:2.5rem 3rem 3rem}
+
+/* ── 排版 ── */
+h1{font-size:1.8rem;color:var(--accent);margin:1.5rem 0 1rem;padding-bottom:.5rem;border-bottom:2px solid var(--accent);line-height:1.3}
+h2{font-size:1.3rem;color:#7ec8e3;margin:2rem 0 .7rem;padding-bottom:.3rem;border-bottom:1px solid var(--border)}
+h3{font-size:1.08rem;color:#a8d8ea;margin:1.5rem 0 .5rem}
+h4{font-size:1rem;color:#b8c8d0;margin:1.2rem 0 .4rem}
+p{margin:.7rem 0}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+strong{color:#fff;font-weight:600}
+em{color:#a0b4be}
+
+/* ── 代码 ── */
+code{
+  background:var(--code-bg);padding:.14em .42em;border-radius:4px;
+  font-size:.87em;font-family:"JetBrains Mono","Fira Code","SF Mono",Menlo,monospace;color:#e0c080;
+}
+pre{
+  background:var(--code-bg);padding:1rem 1.2rem;border-radius:var(--radius);
+  overflow-x:auto;margin:1rem 0;border:1px solid var(--border);line-height:1.55;
+}
+pre code{background:none;padding:0;color:var(--fg);font-size:.84em}
+
+/* ── 表格 ── */
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.9em}
+th,td{border:1px solid var(--border);padding:.45rem .75rem;text-align:left}
+th{background:var(--code-bg);color:var(--accent);font-weight:600;font-size:.86em}
+tr:hover td{background:rgba(255,255,255,.02)}
+
+/* ── 引用 / 列表 / 其他 ── */
+blockquote{border-left:4px solid var(--accent2);padding:.4rem 1rem;margin:1rem 0;color:var(--fg-dim);background:rgba(32,178,170,.08);border-radius:0 var(--radius) var(--radius) 0}
+blockquote p{margin:.25rem 0}
+ul,ol{padding-left:1.5rem;margin:.5rem 0}
+li{margin:.25rem 0}
+hr{border:none;border-top:1px solid var(--border);margin:2.5rem 0}
+img{max-width:100%;border-radius:var(--radius)}
+
+/* ── 下载按钮 ── */
+.download-buttons{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin:1rem 0}
+.dl-btn{
+  display:inline-block;padding:.65rem 1.8rem;border-radius:var(--radius);
+  font-size:.95rem;font-weight:600;text-decoration:none;transition:all .2s;
+  border:2px solid var(--border);
+}
+.dl-btn:hover{text-decoration:none}
+.dl-start{background:var(--accent);color:#000;border-color:var(--accent)}
+.dl-start:hover{background:#00bfe0;border-color:#00bfe0;color:#000}
+.dl-pdf{background:transparent;color:var(--fg);border-color:var(--accent)}
+.dl-pdf:hover{background:var(--accent);border-color:var(--accent);color:#000}
+.dl-epub{background:transparent;color:var(--fg);border-color:var(--border)}
+.dl-epub:hover{border-color:var(--accent);color:var(--accent)}
+.version-info{font-size:.8rem;color:var(--fg-dim)}
+
+/* ── 翻页导航 ── */
+.page-nav{
+  display:flex;justify-content:space-between;align-items:center;gap:1rem;
+  margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border);
+}
+.page-nav a{
+  display:inline-flex;align-items:center;gap:.4rem;
+  padding:.55rem 1.1rem;border-radius:var(--radius);
+  background:var(--code-bg);border:1px solid var(--border);
+  color:var(--fg);font-size:.85rem;text-decoration:none;transition:all .2s;
+  max-width:45%;
+}
+.page-nav a:hover{border-color:var(--accent);color:var(--accent)}
+.page-nav a span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.page-nav .spacer{flex:1}
+
+/* ── 进度条 ── */
+.progress-bar{position:fixed;top:0;left:var(--sidebar-w);right:0;height:3px;z-index:110}
+.progress-bar .bar{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .1s}
+
+/* ── 回到顶部 ── */
+.back-top{
+  position:fixed;bottom:2rem;right:2rem;width:2.4rem;height:2.4rem;border-radius:50%;
+  background:var(--accent2);color:#fff;border:none;font-size:1rem;cursor:pointer;
+  opacity:0;transition:opacity .3s;display:flex;align-items:center;justify-content:center;z-index:80;
+}
+.back-top.show{opacity:.8}
+.back-top:hover{opacity:1}
+
+/* ── 移动端 ── */
+.menu-btn{
+  display:none;position:fixed;top:.7rem;left:.7rem;z-index:200;
+  background:var(--bg-side);border:1px solid var(--border);border-radius:var(--radius);
+  color:var(--accent);font-size:1.2rem;width:2.4rem;height:2.4rem;cursor:pointer;
+  align-items:center;justify-content:center;
+}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:90}
+@media(max-width:900px){
+  :root{--sidebar-w:270px}
+  .chapter{padding:2rem 1.5rem 2.5rem}
+}
+@media(max-width:700px){
+  .sidebar{transform:translateX(-100%);transition:transform .3s}
+  .sidebar.open{transform:translateX(0)}
+  .content{margin-left:0}
+  .menu-btn{display:flex}
+  .overlay.show{display:block}
+  .chapter{padding:3.2rem 1.1rem 2.5rem}
+  .progress-bar{left:0}
+  h1{font-size:1.45rem} h2{font-size:1.15rem}
+}
+</style>
+</head>
+<body>
+
+<button class="menu-btn" onclick="toggleSidebar()">&#9776;</button>
+<div class="overlay" onclick="toggleSidebar()"></div>
+<div class="progress-bar"><div class="bar"></div></div>
+
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <h1><a href="/" style="color:inherit;text-decoration:none">解密 Claude Code</a></h1>
+      <p>AI 编程助手的源码之旅</p>
+    </div>
+    <div class="sidebar-search">
+      <input type="text" placeholder="搜索章节..." oninput="filterToc(this.value)">
+    </div>
+    <div class="toc"><a class="toc-item" href="cover.html" data-cid="cover"><span class="read-dot" data-cid="cover"></span>封面</a>
+<a class="toc-item" href="preface.html" data-cid="preface"><span class="read-dot" data-cid="preface"></span>前言</a>
+<div class="toc-group">第一部分 起步篇</div>
+<a class="toc-item" href="ch01.html" data-cid="ch01"><span class="read-dot" data-cid="ch01"></span>第1章 欢迎来到 Claude Code 的世界</a>
+<a class="toc-item" href="ch02.html" data-cid="ch02"><span class="read-dot" data-cid="ch02"></span>第2章 源码全景地图</a>
+<a class="toc-item" href="ch03.html" data-cid="ch03"><span class="read-dot" data-cid="ch03"></span>第3章 从零理解 TypeScript 与 React</a>
+<div class="toc-group">第二部分 核心架构篇</div>
+<a class="toc-item" href="ch04.html" data-cid="ch04"><span class="read-dot" data-cid="ch04"></span>第4章 程序的大门——入口文件解析</a>
+<a class="toc-item" href="ch05.html" data-cid="ch05"><span class="read-dot" data-cid="ch05"></span>第5章 终端里的 React——Ink 框架揭秘</a>
+<a class="toc-item" href="ch06.html" data-cid="ch06"><span class="read-dot" data-cid="ch06"></span>第6章 状态管理——程序的“记忆”</a>
+<a class="toc-item" href="ch07.html" data-cid="ch07"><span class="read-dot" data-cid="ch07"></span>第7章 命令系统——斜杠的魔法</a>
+<div class="toc-group">第三部分 对话引擎篇</div>
+<a class="toc-item" href="ch08.html" data-cid="ch08"><span class="read-dot" data-cid="ch08"></span>第8章 与 AI 对话的秘密——消息系统</a>
+<a class="toc-item" href="ch09.html" data-cid="ch09"><span class="read-dot" data-cid="ch09"></span>第9章 查询引擎——大脑中枢</a>
+<a class="toc-item active" href="ch10.html" data-cid="ch10"><span class="read-dot" data-cid="ch10"></span>第10章 流式响应——逐字显示的魔法</a>
+<a class="toc-item" href="ch11.html" data-cid="ch11"><span class="read-dot" data-cid="ch11"></span>第11章 上下文管理——有限的记忆</a>
+<div class="toc-group">第四部分 工具系统篇</div>
+<a class="toc-item" href="ch12.html" data-cid="ch12"><span class="read-dot" data-cid="ch12"></span>第12章 工具的世界——从设计到实现</a>
+<a class="toc-item" href="ch13.html" data-cid="ch13"><span class="read-dot" data-cid="ch13"></span>第13章 Bash 工具——最强大也最危险</a>
+<a class="toc-item" href="ch14.html" data-cid="ch14"><span class="read-dot" data-cid="ch14"></span>第14章 文件三剑客——Read、Write、Edit</a>
+<a class="toc-item" href="ch15.html" data-cid="ch15"><span class="read-dot" data-cid="ch15"></span>第15章 搜索双雄——Grep 与 Glob</a>
+<a class="toc-item" href="ch16.html" data-cid="ch16"><span class="read-dot" data-cid="ch16"></span>第16章 Agent 工具——AI 的分身术</a>
+<div class="toc-group">第五部分 安全与权限篇</div>
+<a class="toc-item" href="ch17.html" data-cid="ch17"><span class="read-dot" data-cid="ch17"></span>第17章 权限系统——信任的层级</a>
+<a class="toc-item" href="ch18.html" data-cid="ch18"><span class="read-dot" data-cid="ch18"></span>第18章 安全防线——危险命令检测</a>
+<a class="toc-item" href="ch19.html" data-cid="ch19"><span class="read-dot" data-cid="ch19"></span>第19章 沙箱机制——隔离的艺术</a>
+<div class="toc-group">第六部分 扩展与集成篇</div>
+<a class="toc-item" href="ch20.html" data-cid="ch20"><span class="read-dot" data-cid="ch20"></span>第20章 MCP 协议——工具的万能接口</a>
+<a class="toc-item" href="ch21.html" data-cid="ch21"><span class="read-dot" data-cid="ch21"></span>第21章 Hook 系统——可编程的钩子</a>
+<a class="toc-item" href="ch22.html" data-cid="ch22"><span class="read-dot" data-cid="ch22"></span>第22章 IDE 桥接——编辑器中的 AI</a>
+<a class="toc-item" href="ch23.html" data-cid="ch23"><span class="read-dot" data-cid="ch23"></span>第23章 插件与技能——无限扩展</a>
+<div class="toc-group">第七部分 高级话题篇</div>
+<a class="toc-item" href="ch24.html" data-cid="ch24"><span class="read-dot" data-cid="ch24"></span>第24章 多智能体——AI 的团队协作</a>
+<a class="toc-item" href="ch25.html" data-cid="ch25"><span class="read-dot" data-cid="ch25"></span>第25章 性能优化——毫秒必争</a>
+<a class="toc-item" href="ch26.html" data-cid="ch26"><span class="read-dot" data-cid="ch26"></span>第26章 持久化记忆——跨会话的智慧</a>
+<a class="toc-item" href="ch27.html" data-cid="ch27"><span class="read-dot" data-cid="ch27"></span>第27章 配置系统——千人千面</a>
+<div class="toc-group">第八部分 总结篇</div>
+<a class="toc-item" href="ch28.html" data-cid="ch28"><span class="read-dot" data-cid="ch28"></span>第28章 架构之美——设计模式总结</a>
+<a class="toc-item" href="ch29.html" data-cid="ch29"><span class="read-dot" data-cid="ch29"></span>第29章 从源码到产品——工程实践启示</a>
+<a class="toc-item" href="ch30.html" data-cid="ch30"><span class="read-dot" data-cid="ch30"></span>第30章 你的下一步——成为更好的程序员</a>
+<div class="toc-group">附录</div>
+<a class="toc-item" href="appendix-a.html" data-cid="appendix-a"><span class="read-dot" data-cid="appendix-a"></span>附录 A 术语表</a>
+<a class="toc-item" href="appendix-b.html" data-cid="appendix-b"><span class="read-dot" data-cid="appendix-b"></span>附录 B 源码关键文件索引</a>
+<a class="toc-item" href="appendix-c.html" data-cid="appendix-c"><span class="read-dot" data-cid="appendix-c"></span>附录 C 全书知识地图</a>
+<a class="toc-item" href="about.html" data-cid="about"><span class="read-dot" data-cid="about"></span>关于本书</a></div>
+    <div class="progress-panel">
+      <div class="progress-title">
+        <span>阅读进度</span>
+        <button onclick="clearProgress()">清除记录</button>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="readFill"></div></div>
+      <div class="progress-text" id="readText">0 / 0 章</div>
+      <div class="last-read" id="lastRead"></div>
+    </div>
+  </nav>
+
+  <main class="content">
+    <article class="chapter">
+<h1 id="ch10-h1">第10章：流式响应——逐字显示的魔法</h1>
+
+<h2 id="ch10-h2">为什么需要流式？</h2>
+
+<p>你有没有注意到，当你问 Claude 一个问题时，回答是一个字一个字出现的，而不是&quot;嘭&quot;一下全部显示？这就是<strong>流式响应（Streaming）</strong>。</p>
+
+<p>为什么要这样？想象两种体验：</p>
+
+<p><strong>方式A（非流式）</strong>：你问了一个问题。等了 15 秒，屏幕上什么都没有。然后突然出现一大段文字。</p>
+
+<p><strong>方式B（流式）</strong>：你问了一个问题。0.5 秒后开始出现文字，一个词一个词地&quot;打&quot;出来，15 秒后打完。</p>
+
+<p>两种方式总时间差不多，但方式 B 的体验好得多——因为你能<strong>立刻看到 AI 在工作</strong>，而不是对着空白屏幕焦虑地等待。</p>
+
+<p>这在心理学上叫做<strong>感知延迟</strong>——同样是等 15 秒，有反馈的等待比没有反馈的等待感觉快得多。</p>
+
+<h2 id="ch10-h3">流式的工作原理</h2>
+
+<p>流式响应使用一种叫 <strong>Server-Sent Events (SSE)</strong> 的协议。它的工作方式像这样：</p>
+
+<pre><code>
+客户端发送请求
+    ↓
+服务器开始生成回复
+    ↓
+生成了几个字 → 立刻发给客户端
+生成了几个字 → 立刻发给客户端
+生成了几个字 → 立刻发给客户端
+...
+生成完毕 → 发送结束信号
+</code></pre>
+
+<p>与普通 HTTP 请求不同（发送请求 → 等待 → 收到完整响应），SSE 保持连接打开，服务器随时可以发送数据。</p>
+
+<h2 id="ch10-h4">事件的种类</h2>
+
+<p>Claude API 在流式模式下会发送以下类型的事件：</p>
+
+<pre><code>
+message_start          开始一条新消息
+  │
+  ├── content_block_start  开始一个内容块（文字/工具调用/思考）
+  │     │
+  │     ├── content_block_delta  增量内容（几个字/几个字节的 JSON）
+  │     ├── content_block_delta
+  │     ├── content_block_delta
+  │     │   ...
+  │     │
+  │     └── content_block_stop   内容块结束
+  │
+  ├── content_block_start  另一个内容块
+  │     │
+  │     └── ...
+  │
+  └── message_stop         消息结束
+</code></pre>
+
+<p>让我们看一个真实的例子。当 AI 回复 &quot;你好，让我看看那个文件。&quot; 时，事件序列是：</p>
+
+<pre><code>
+event: message_start
+data: { &quot;type&quot;: &quot;message_start&quot;, &quot;message&quot;: { &quot;id&quot;: &quot;msg_123&quot;, &quot;role&quot;: &quot;assistant&quot; } }
+
+event: content_block_start
+data: { &quot;type&quot;: &quot;content_block_start&quot;, &quot;index&quot;: 0, &quot;content_block&quot;: { &quot;type&quot;: &quot;text&quot;, &quot;text&quot;: &quot;&quot; } }
+
+event: content_block_delta
+data: { &quot;type&quot;: &quot;content_block_delta&quot;, &quot;delta&quot;: { &quot;type&quot;: &quot;text_delta&quot;, &quot;text&quot;: &quot;你好&quot; } }
+
+event: content_block_delta
+data: { &quot;type&quot;: &quot;content_block_delta&quot;, &quot;delta&quot;: { &quot;type&quot;: &quot;text_delta&quot;, &quot;text&quot;: &quot;，让我&quot; } }
+
+event: content_block_delta
+data: { &quot;type&quot;: &quot;content_block_delta&quot;, &quot;delta&quot;: { &quot;type&quot;: &quot;text_delta&quot;, &quot;text&quot;: &quot;看看那个&quot; } }
+
+event: content_block_delta
+data: { &quot;type&quot;: &quot;content_block_delta&quot;, &quot;delta&quot;: { &quot;type&quot;: &quot;text_delta&quot;, &quot;text&quot;: &quot;文件。&quot; } }
+
+event: content_block_stop
+data: { &quot;type&quot;: &quot;content_block_stop&quot;, &quot;index&quot;: 0 }
+
+event: message_stop
+data: { &quot;type&quot;: &quot;message_stop&quot; }
+</code></pre>
+
+<p>每个 <code>text_delta</code> 只包含几个字，立刻发送给客户端。客户端把这些字拼接起来，就得到了完整的回复。</p>
+
+<h2 id="ch10-h5">Claude Code 中的流式处理</h2>
+
+<p>Claude Code 使用异步生成器来处理流式事件：</p>
+
+<pre><code class="language-typescript">
+async function* processStream(stream: AsyncIterable&lt;StreamEvent&gt;) {
+  let currentText = &quot;&quot;
+  let currentToolUse = null
+
+  for await (const event of stream) {
+    switch (event.type) {
+      case &quot;content_block_start&quot;:
+        if (event.content_block.type === &quot;text&quot;) {
+          currentText = &quot;&quot;
+        } else if (event.content_block.type === &quot;tool_use&quot;) {
+          currentToolUse = {
+            id: event.content_block.id,
+            name: event.content_block.name,
+            inputJson: &quot;&quot;,
+          }
+        }
+        break
+
+      case &quot;content_block_delta&quot;:
+        if (event.delta.type === &quot;text_delta&quot;) {
+          currentText += event.delta.text
+          // 立刻把这几个字显示给用户
+          yield { type: &quot;text_update&quot;, text: event.delta.text }
+        }
+        if (event.delta.type === &quot;input_json_delta&quot;) {
+          currentToolUse.inputJson += event.delta.partial_json
+          // 工具的输入参数也在逐步到来
+        }
+        break
+
+      case &quot;content_block_stop&quot;:
+        if (currentToolUse) {
+          // 工具输入完整了，可以解析 JSON
+          const input = JSON.parse(currentToolUse.inputJson)
+          yield {
+            type: &quot;tool_use_complete&quot;,
+            tool: currentToolUse.name,
+            input: input,
+          }
+        }
+        break
+
+      case &quot;message_stop&quot;:
+        yield { type: &quot;message_complete&quot; }
+        break
+    }
+  }
+}
+</code></pre>
+
+<h2 id="ch10-h6">界面的实时更新</h2>
+
+<p>当流式事件到来时，界面需要实时更新。这就是 React 发挥作用的地方：</p>
+
+<pre><code class="language-typescript">
+function StreamingMessage() {
+  const [text, setText] = useState(&quot;&quot;)
+  const [isStreaming, setIsStreaming] = useState(true)
+
+  useEffect(() =&gt; {
+    const processEvents = async () =&gt; {
+      for await (const event of processStream(stream)) {
+        if (event.type === &quot;text_update&quot;) {
+          setText(prev =&gt; prev + event.text)
+        }
+        if (event.type === &quot;message_complete&quot;) {
+          setIsStreaming(false)
+        }
+      }
+    }
+    processEvents()
+  }, [])
+
+  return (
+    &lt;Box&gt;
+      &lt;Text&gt;{text}&lt;/Text&gt;
+      {isStreaming &amp;&amp; &lt;Spinner /&gt;}
+    &lt;/Box&gt;
+  )
+}
+</code></pre>
+
+<p>每收到一个 <code>text_update</code>，调用 <code>setText()</code> 追加新文字。React 检测到状态变化，自动重新渲染组件——用户就看到了新出现的文字。</p>
+
+<h2 id="ch10-h7">加载动画与 Token 计数</h2>
+
+<p>在 AI &quot;思考&quot;（生成回复）的过程中，Claude Code 显示一个加载动画：</p>
+
+<pre><code>
+⠋ Thinking... (1,234 tokens)
+</code></pre>
+
+<p>这个 token 计数是实时更新的。怎么做到的？</p>
+
+<pre><code class="language-typescript">
+function ThinkingSpinner() {
+  const [tokenCount, setTokenCount] = useState(0)
+  const [frame, setFrame] = useState(0)
+
+  // 旋转动画帧
+  const spinnerFrames = [&quot;⠋&quot;, &quot;⠙&quot;, &quot;⠹&quot;, &quot;⠸&quot;, &quot;⠼&quot;, &quot;⠴&quot;, &quot;⠦&quot;, &quot;⠧&quot;, &quot;⠇&quot;, &quot;⠏&quot;]
+
+  useEffect(() =&gt; {
+    const timer = setInterval(() =&gt; {
+      setFrame(f =&gt; (f + 1) % spinnerFrames.length)
+    }, 80)  // 每 80ms 换一帧
+    return () =&gt; clearInterval(timer)
+  }, [])
+
+  return (
+    &lt;Text&gt;
+      &lt;Text color=&quot;cyan&quot;&gt;{spinnerFrames[frame]}&lt;/Text&gt;
+      {&quot; &quot;}Thinking... ({tokenCount.toLocaleString()} tokens)
+    &lt;/Text&gt;
+  )
+}
+</code></pre>
+
+<p>Token 计数的估算方式很简单：</p>
+
+<pre><code class="language-typescript">
+// 每收到一些文字，就估算 token 数
+const estimatedTokens = Math.ceil(receivedCharacters / 4)
+</code></pre>
+
+<p>大约每 4 个字符是 1 个 token。这只是估算，但对实时显示来说足够准确了。</p>
+
+<h2 id="ch10-h8">中断：用户按了 Ctrl+C</h2>
+
+<p>如果 AI 正在回复，用户突然按了 Ctrl+C 想打断它怎么办？</p>
+
+<p>Claude Code 有三种处理方式：</p>
+
+<pre><code class="language-typescript">
+function handleInterrupt(currentState) {
+  if (currentState === &quot;streaming_text&quot;) {
+    // AI 正在说话 → 停止接收，显示已收到的部分
+    stream.abort()
+    showPartialResponse()
+  }
+
+  if (currentState === &quot;executing_tool&quot;) {
+    // 正在执行工具 → 取决于工具的中断行为
+    const behavior = currentTool.interruptBehavior()
+
+    if (behavior === &quot;cancel&quot;) {
+      // 取消工具执行
+      currentTool.cancel()
+    } else if (behavior === &quot;block&quot;) {
+      // 等待工具完成（不能取消，比如正在写文件）
+      showMessage(&quot;等待当前操作完成...&quot;)
+    }
+  }
+}
+</code></pre>
+
+<p>每个工具可以定义自己的&quot;中断行为&quot;：</p>
+<ul>
+<li>- <code>cancel</code>：可以安全取消（如读文件）</li>
+<li>- <code>block</code>：不能取消，必须等待完成（如写文件——写到一半中断会导致文件损坏）</li>
+</ul>
+
+<h2 id="ch10-h9">细粒度工具流式输入</h2>
+
+<p>一个有趣的优化：工具的输入参数也可以流式处理。</p>
+
+<p>以 Bash 工具为例。AI 可能要运行一个很长的命令：</p>
+
+<pre><code class="language-json">
+{
+  &quot;name&quot;: &quot;Bash&quot;,
+  &quot;input&quot;: {
+    &quot;command&quot;: &quot;find /Users/project -name &#x27;*.ts&#x27; -exec grep -l &#x27;import React&#x27; {} \\; | sort | head -20&quot;
+  }
+}
+</code></pre>
+
+<p>传统方式：等 AI 生成完整个命令字符串后，才开始执行。</p>
+
+<p>流式方式：AI 还在生成命令的时候，Claude Code 就已经知道工具名是 &quot;Bash&quot; 了，可以提前做准备工作（比如检查权限）。</p>
+
+<pre><code class="language-typescript">
+// Fine-Grained Tool Streaming (FGTS)
+{
+  eager_input_streaming: true  // 启用细粒度流式
+}
+</code></pre>
+
+<p>当这个特性启用时：</p>
+<ol>
+<li>1. AI 开始生成工具输入 → Claude Code 收到工具名</li>
+<li>2. 立刻开始权限检查和分类器评估</li>
+<li>3. AI 生成完输入 → 权限检查已经完成了</li>
+<li>4. 立刻开始执行工具</li>
+</ol>
+
+<p>这个优化可以节省几百毫秒的延迟——对用户来说就是&quot;更快的响应&quot;。</p>
+
+<h2 id="ch10-h10">思考块：AI 的思考过程</h2>
+
+<p>某些模型支持&quot;思考&quot;功能——AI 可以先在内部思考，再给出回答：</p>
+
+<pre><code>
+事件序列：
+  content_block_start → { type: &quot;thinking&quot; }
+  thinking_delta → &quot;让我分析一下这个问题...&quot;
+  thinking_delta → &quot;首先，我需要理解代码结构...&quot;
+  thinking_delta → &quot;然后，我发现 bug 在第 42 行...&quot;
+  content_block_stop
+  content_block_start → { type: &quot;text&quot; }
+  text_delta → &quot;我找到了问题。在第 42 行...&quot;
+</code></pre>
+
+<p>思考块让用户能看到 AI 的推理过程，就像看到一个老师在黑板上演算解题步骤。</p>
+
+<h2 id="ch10-h11">本章小结</h2>
+
+<ul>
+<li>- <strong>流式响应</strong>让 AI 的回复实时显示，大幅改善用户体验</li>
+<li>- 使用 <strong>SSE 协议</strong>，服务器持续发送小块数据</li>
+<li>- 事件类型：message_start → content_block_start → delta → stop</li>
+<li>- React 的状态更新机制与流式完美配合</li>
+<li>- 加载动画用 Unicode 盲文字符实现&quot;旋转&quot;效果</li>
+<li>- <strong>中断处理</strong>根据工具类型决定&quot;取消&quot;还是&quot;等待&quot;</li>
+<li>- <strong>细粒度工具流式输入</strong>提前开始权限检查，节省延迟</li>
+<li>- <strong>思考块</strong>让用户看到 AI 的推理过程</li>
+</ul>
+
+<h2 id="ch10-h12">思考题</h2>
+
+<ol>
+<li>1. 如果网络很慢，流式响应会有什么体验问题？（提示：文字出现可能会一卡一卡的）</li>
+<li>2. 为什么写文件操作不能被中断？如果强制中断会发生什么？</li>
+<li>3. &quot;感知延迟&quot;这个概念在日常生活中还有哪些例子？</li>
+</ol>
+
+<h2 id="ch10-h13">动手实验：体验流式的力量</h2>
+
+<p>如果你想亲自体验流式 vs 非流式的差异，试试在 Node.js 中运行这个实验：</p>
+
+<pre><code class="language-javascript">
+// experiment.js - 模拟流式和非流式的体验差异
+
+// 非流式：等待 3 秒后一次性显示
+async function nonStreaming() {
+  console.log(&quot;非流式模式：请等待...\n&quot;)
+  await new Promise(r =&gt; setTimeout(r, 3000))
+  console.log(&quot;Hello! I am Claude, and I can help you with coding tasks.&quot;)
+}
+
+// 流式：立刻开始逐字显示
+async function streaming() {
+  console.log(&quot;流式模式：\n&quot;)
+  const text = &quot;Hello! I am Claude, and I can help you with coding tasks.&quot;
+  for (const char of text) {
+    process.stdout.write(char)
+    await new Promise(r =&gt; setTimeout(r, 50))  // 每个字延迟 50ms
+  }
+  console.log()
+}
+
+// 先体验非流式，再体验流式
+nonStreaming().then(() =&gt; {
+  console.log(&quot;\n---\n&quot;)
+  return streaming()
+})
+</code></pre>
+
+<p>运行 <code>node experiment.js</code>，你会明显感受到两种方式的体验差异。</p>
+
+<p>下一章，我们将学习上下文管理——AI 如何在有限的&quot;记忆&quot;中做到最好。</p>
+
+<hr/>
+
+<p><em>本书由 everettjf 使用 Claude Code 分析泄露源码编写 | 保留出处即可自由转载</em></p>
+
+    </article>
+    <nav class="chapter page-nav">
+      <a href="ch09.html" data-dir="prev"><span>&#8592;</span> <span>第9章 查询引擎——大脑中枢</span></a>
+      <span class="spacer"></span>
+      <a href="ch11.html" data-dir="next"><span>第11章 上下文管理——有限的记忆</span> <span>&#8594;</span></a>
+    </nav>
+  </main>
+</div>
+
+<button class="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">&#8593;</button>
+
+<script>
+// ── 基础交互 ──
+function toggleSidebar(){
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.querySelector('.overlay').classList.toggle('show');
+}
+function filterToc(q){
+  q=q.toLowerCase();
+  document.querySelectorAll('.toc-item').forEach(a=>{
+    a.classList.toggle('hidden',q&&!a.textContent.toLowerCase().includes(q));
+  });
+}
+window.addEventListener('scroll',()=>{
+  const h=document.documentElement;
+  const pct=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100;
+  document.querySelector('.progress-bar .bar').style.width=pct+'%';
+  document.querySelector('.back-top').classList.toggle('show',h.scrollTop>400);
+},{passive:true});
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  if(e.key==='ArrowLeft'){ const a=document.querySelector('.page-nav a[data-dir=prev]'); if(a) a.click(); }
+  if(e.key==='ArrowRight'){ const a=document.querySelector('.page-nav a[data-dir=next]'); if(a) a.click(); }
+});
+
+// ── 阅读进度（localStorage）──
+const STORAGE_KEY = 'dcc_read_progress';
+const CURRENT_CID = 'ch10';
+const ALL_CIDS = ["cover", "preface", "ch01", "ch02", "ch03", "ch04", "ch05", "ch06", "ch07", "ch08", "ch09", "ch10", "ch11", "ch12", "ch13", "ch14", "ch15", "ch16", "ch17", "ch18", "ch19", "ch20", "ch21", "ch22", "ch23", "ch24", "ch25", "ch26", "ch27", "ch28", "ch29", "ch30", "appendix-a", "appendix-b", "appendix-c", "about"];
+const TOTAL = ALL_CIDS.length;
+
+function getProgress(){
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveProgress(p){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+}
+
+// 标记当前章节为已读
+function markRead(){
+  const p = getProgress();
+  if(!p[CURRENT_CID]){
+    p[CURRENT_CID] = new Date().toISOString();
+    saveProgress(p);
+  }
+  renderProgress();
+}
+
+// 清除全部进度
+function clearProgress(){
+  if(!confirm('确定要清除所有阅读记录吗？')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  renderProgress();
+}
+
+// 渲染进度 UI
+function renderProgress(){
+  const p = getProgress();
+  const readCount = ALL_CIDS.filter(id => p[id]).length;
+  const pct = TOTAL ? Math.round(readCount / TOTAL * 100) : 0;
+
+  // 进度条
+  const fill = document.getElementById('readFill');
+  const text = document.getElementById('readText');
+  if(fill) fill.style.width = pct + '%';
+  if(text) text.textContent = readCount + ' / ' + TOTAL + ' 章（' + pct + '%）';
+
+  // 侧边栏已读标记
+  document.querySelectorAll('.read-dot').forEach(dot => {
+    dot.classList.toggle('done', !!p[dot.dataset.cid]);
+  });
+
+  // 上次阅读
+  const lastEl = document.getElementById('lastRead');
+  if(lastEl){
+    const entries = Object.entries(p).sort((a,b) => b[1].localeCompare(a[1]));
+    if(entries.length > 0){
+      const [lastCid, lastTime] = entries[0];
+      const link = document.querySelector('.toc-item[data-cid="'+lastCid+'"]');
+      const title = link ? link.textContent.trim() : lastCid;
+      const d = new Date(lastTime);
+      const timeStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')
+        +' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+      lastEl.innerHTML = '上次阅读：<a href="'+lastCid+'.html">'+title+'</a><br><span style="font-size:.65rem">'+timeStr+'</span>';
+    } else {
+      lastEl.innerHTML = '<span style="color:var(--fg-dim)">还没有阅读记录</span>';
+    }
+  }
+
+  // 如果全部读完，显示庆祝
+  if(readCount === TOTAL && TOTAL > 0 && fill){
+    fill.style.background = 'linear-gradient(90deg,#4ade80,#22d3ee)';
+  }
+}
+
+// 滚动到底部 80% 自动标记已读
+let _marked = false;
+window.addEventListener('scroll', ()=>{
+  if(_marked) return;
+  const h = document.documentElement;
+  const scrollPct = h.scrollTop / (h.scrollHeight - h.clientHeight);
+  if(scrollPct > 0.8){
+    _marked = true;
+    markRead();
+  }
+}, {passive:true});
+
+// 页面加载后也立即标记（对于短内容页面）
+window.addEventListener('load', ()=>{
+  const h = document.documentElement;
+  if(h.scrollHeight <= h.clientHeight * 1.3){
+    // 内容不长，直接标记
+    setTimeout(()=>{ markRead(); }, 2000);
+  }
+  renderProgress();
+});
+</script>
+</body>
+</html>

